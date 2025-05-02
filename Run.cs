@@ -88,7 +88,7 @@ public class Run : IDisposable
     /// <summary>
     /// All types of algorithms to be run
     /// </summary>
-        List<ISolver> solvers;
+    public List<ISolver> solvers = [];
 
     /// <summary>
     /// All types of A* heuristics used
@@ -121,17 +121,17 @@ public class Run : IDisposable
         }
         astar_heuristics.Add(simple);
 
-        var cbs_heuristics = new List<IHeuristicCalculator<CbsNode>>();
-        var mvc = new MvcHeuristicForCbs();
+        List<IHeuristicCalculator<CbsNode>> cbs_heuristics = [];
+        MvcHeuristicForCbs mvc = new();
         cbs_heuristics.Add(mvc);
-        var mddPruning = new MddPruningHeuristicForCbs();
+        MddPruningHeuristicForCbs mddPruning = new();
         cbs_heuristics.Add(mddPruning);
 
-        var astar = new A_Star(simple);
-        var cbs = new CBS(astar, astar, -1);
-        var astar_with_od = new A_Star_WithOD(simple);
-        var epea = new EPEA_Star(simple);
-        //var macbsLocal5Epea = new CBS(astar, epea, 5);
+        A_Star astar = new(simple);
+        CBS cbs = new(astar, astar, -1);
+        A_Star_WithOD astar_with_od = new(simple);
+        EPEA_Star epea = new(simple);
+        var macbsLocal5Epea = new CBS(astar, epea, 5);
         //var macbsLocal50Epea = new CBS(astar, epea, 50);
         //var cbsHeuristicNoSolve1 = new CbsHeuristicForAStar(cbs, this, false, 1);
         //var cbsHeuristicNoSolve2 = new CbsHeuristicForAStar(cbs, this, false, 2);
@@ -160,10 +160,11 @@ public class Run : IDisposable
         //heuristics.Add(dynamicLazyMacbsLocal5EpeaHForOracleMustBeLast);
 
         // Preparing the solvers:
-        solvers = new List<ISolver>();
-        solvers.Add(new IndependenceDetection(astar, epea, IndependenceDetection.ConflictChoice.FIRST, true, ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_CONFLICTS)); // EPEA* + ID
-        solvers.Add(new IndependenceDetection(astar, epea, IndependenceDetection.ConflictChoice.MOST_CONFLICTING_SMALLEST_RESULTING_GROUP, true, ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_LARGEST_CONFLICTING_GROUP_THEN_NUMBER_OF_SUCH_GROUPS)); // EPEA* + ID
-        solvers.Add(new IndependenceDetection(astar, epea, IndependenceDetection.ConflictChoice.LEAST_CONFLICTING_LARGEST_RESULTING_GROUP, true, ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_CONFLICTS)); // EPEA* + ID
+        solvers.Add(macbsLocal5Epea); // MA-CBS(5)/EPEA*
+
+        //solvers.Add(new IndependenceDetection(astar, epea, IndependenceDetection.ConflictChoice.FIRST, true, ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_CONFLICTS)); // EPEA* + ID
+        //solvers.Add(new IndependenceDetection(astar, epea, IndependenceDetection.ConflictChoice.MOST_CONFLICTING_SMALLEST_RESULTING_GROUP, true, ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_LARGEST_CONFLICTING_GROUP_THEN_NUMBER_OF_SUCH_GROUPS)); // EPEA* + ID
+        //solvers.Add(new IndependenceDetection(astar, epea, IndependenceDetection.ConflictChoice.LEAST_CONFLICTING_LARGEST_RESULTING_GROUP, true, ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_CONFLICTS)); // EPEA* + ID
 
         //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea)); // CBS/EPEA*
         //solvers.Add(new MACBS_WholeTreeThreshold(
@@ -480,7 +481,7 @@ public class Run : IDisposable
         //solvers.Add(new A_Star_WithOD(cbsHeuristicNoSolve6));
         //solvers.Add(new A_Star_WithOD(sicOrCbsh6));
 
-        A_Star solver;
+        //A_Star solver;
         // dynamic not rational lazy A*+OD/CBS/A*/SIC:
         //solver = new A_Star_WithOD(simple);
         //var dynamicLazyOpenList1 = new DynamicLazyOpenList(solver, dynamicLazyCbsh, this);
@@ -539,7 +540,7 @@ public class Run : IDisposable
         solver.openList = dynamicRationalLazyOpenList6;
         solvers.Add(new CBS(astar, solver, 0));
             */
-            
+
         /*
         //soldier: but can't handle 50 agents
         // dynamic rational lazy EPEA* / MA-CBS-local-5 / EPEA* / SIC:
@@ -660,7 +661,7 @@ public class Run : IDisposable
         }
 
         // Initialized here only for the IsValid() call. TODO: Think how this can be sidestepped elegantly.
-        ProblemInstance problem = new ProblemInstance();
+        ProblemInstance problem = new();
         problem.Init(aStart, grid);
             
         for (int j = 0; j < RANDOM_WALK_STEPS; j++)
@@ -691,6 +692,7 @@ public class Run : IDisposable
         // TODO: There is some repetition here of previous instantiation of ProblemInstance. Think how to elegantly bypass this.
         problem = new ProblemInstance();
         problem.Init(aStart, grid);
+        problem.ComputeSingleAgentShortestPaths(); // CBS needs it
         return problem;            
     }
 
@@ -839,31 +841,27 @@ public class Run : IDisposable
                 //    ((CBS)solvers[i]).debug = true;
                 //if (i == 4)
                 //    ((CBS)((IndependenceDetection)solvers[i]).groupSolver).debug = true;
-                if (solvers[i].GetType() == typeof(CBS) || solvers[i].GetType() == typeof(MACBS_WholeTreeThreshold))
+                if (solvers[i] is CBS cbsSolver)
                 {
-                    if (((CBS)solvers[i]).mergeThreshold == 314159) // MAGIC NUMBER WHICH MAKES US ADJUST B according to map
+                    if (cbsSolver.mergeThreshold == 314159) // MAGIC NUMBER WHICH MAKES US ADJUST B according to map
                     {
                         if (instance.gridName.StartsWith("den"))
-                            ((CBS)solvers[i]).mergeThreshold = 10;
+                            cbsSolver.mergeThreshold = 10;
                         else if (instance.gridName.StartsWith("brc") || instance.gridName.StartsWith("ost"))
-                            ((CBS)solvers[i]).mergeThreshold = 100;
+                            cbsSolver.mergeThreshold = 100;
                     }
                 }
 
 
-                if (
-                    (solvers[i].GetType() == typeof(IndependenceDetection) &&
-                        ((IndependenceDetection)solvers[i]).groupSolver.GetType() == typeof(CBS)) ||
-                    (solvers[i].GetType() == typeof(IndependenceDetection) &&
-                        ((IndependenceDetection)solvers[i]).groupSolver.GetType() == typeof(MACBS_WholeTreeThreshold))
-                    )
+                if ( solvers[i] is IndependenceDetection independenceDetection &&
+                  independenceDetection.groupSolver is CBS cbsSolver1 )
                 {
-                    if (((CBS)((IndependenceDetection)solvers[i]).groupSolver).mergeThreshold == 314159) // MAGIC NUMBER SEE ABOVE
+                    if (cbsSolver1.mergeThreshold == 314159) // MAGIC NUMBER SEE ABOVE
                     {
                         if (instance.gridName.StartsWith("den"))
-                            ((CBS)((IndependenceDetection)solvers[i]).groupSolver).mergeThreshold = 10;
+                            cbsSolver1.mergeThreshold = 10;
                         else if (instance.gridName.StartsWith("brc") || instance.gridName.StartsWith("ost"))
-                            ((CBS)((IndependenceDetection)solvers[i]).groupSolver).mergeThreshold = 100;
+                            cbsSolver1.mergeThreshold = 100;
                     }
                 }
 

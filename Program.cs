@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics;
 using System.IO;
+using mapfWin;
 
 namespace mapf;
 
@@ -17,15 +18,17 @@ class Program
     /// <summary>
     /// Simplest run possible with a randomly generated problem instance.
     /// </summary>
-    public void SimpleRun()
+    public static void SimpleRun()
     {
-        using (Run runner = new Run())
+        using (Run runner = new())
         {
             runner.OpenResultsFile(RESULTS_FILE_NAME);
             runner.PrintResultsFileHeader();
-            ProblemInstance instance = runner.GenerateProblemInstance(10, 3, 10);
+            //ProblemInstance instance = runner.GenerateProblemInstance(10, 3, 10);
+            ProblemInstance instance = XlsxReader.ReadProblemFromXlsx("Layout 2025-04-23Simplified.xlsx");
             instance.Export("Test.instance");
             runner.SolveGivenProblem(instance);
+            PlanToConsole.PrintSolution(instance.grid, runner.solvers[0].GetPlan());
         }
     }
 
@@ -33,7 +36,7 @@ class Program
     /// Runs a single instance, imported from a given filename.
     /// </summary>
     /// <param name="fileName"></param>
-    public void RunInstance(string fileName)
+    public static void RunInstance(string fileName)
     {
         ProblemInstance instance;
         try
@@ -46,9 +49,8 @@ class Program
             Console.WriteLine(e.StackTrace);
             return;
         }
-
-        Run runner = new Run();
-        using (runner)
+ 
+        using (Run runner = new())
         {
             bool resultsFileExisted = File.Exists(RESULTS_FILE_NAME);
             runner.OpenResultsFile(RESULTS_FILE_NAME);
@@ -62,11 +64,11 @@ class Program
     /// Runs a set of experiments.
     /// This function will generate a random instance (or load it from a file if it was already generated)
     /// </summary>
-    public void RunExperimentSet(int[] gridSizes, int[] agentListSizes, int[] obstaclesProbs, int instances)
+    public static void RunExperimentSet(int[] gridSizes, int[] agentListSizes, int[] obstaclesProbs, int instances)
     {
         ProblemInstance instance;
         string instanceName;
-        using (Run runner = new Run())
+        using (Run runner = new())
         {
             bool resultsFileExisted = File.Exists(RESULTS_FILE_NAME);
             runner.OpenResultsFile(RESULTS_FILE_NAME);
@@ -190,11 +192,11 @@ class Program
     /// </summary>
     /// <param name="numInstances"></param>
     /// <param name="mapFilePaths"></param>
-    public void RunDragonAgeExperimentSet(int numInstances, string[] mapFilePaths)
+    public static void RunDragonAgeExperimentSet(int numInstances, string[] mapFilePaths)
     {
         ProblemInstance instance;
         string instanceName;
-        using (Run runner = new Run())
+        using (Run runner = new())
         {
             bool resultsFileExisted = File.Exists(RESULTS_FILE_NAME);
             runner.OpenResultsFile(RESULTS_FILE_NAME);
@@ -293,7 +295,6 @@ class Program
     /// </summary>
     static void Main(string[] args)
     {
-        Program me = new Program();
         Program.RESULTS_FILE_NAME = Process.GetCurrentProcess().ProcessName + ".csv";
         if (System.Diagnostics.Debugger.IsAttached)
         {
@@ -302,12 +303,15 @@ class Program
             Debug.WriteLine("Debugger attached - running without a timeout!!");
         }
 
-        if (Directory.Exists(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "Instances")) == false)
+        if (!Directory.Exists(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "Instances")))
         {
             Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "Instances"));
         }
 
         Program.onlyReadInstances = false;
+
+        SimpleRun();
+        return;
 
         int instances = 100;
 
@@ -334,12 +338,12 @@ class Program
             //int[] obstaclesPercents = new int[] { 20, };
             //int[] obstaclesPercents = new int[] { /*0, 5, 10, 15, 20, 25, 30, 35, */20, 30, 40};
             int[] obstaclesPercents = new int[] { /*0, 5, 10,*/ 15, /*20, 25, 30, 35, 20, 30, 40*/ };
-            me.RunExperimentSet(gridSizes, agentListSizes, obstaclesPercents, instances);
+            RunExperimentSet(gridSizes, agentListSizes, obstaclesPercents, instances);
         }
         else if (runDragonAge == true)
-            me.RunDragonAgeExperimentSet(instances, Program.daoMapPaths); // Obstacle percents and grid sizes built-in to the maps.
+            RunDragonAgeExperimentSet(instances, Program.daoMapPaths); // Obstacle percents and grid sizes built-in to the maps.
         else if (runMazesWidth1 == true)
-            me.RunDragonAgeExperimentSet(instances, Program.mazeMapPaths); // Obstacle percents and grid sizes built-in to the maps.
+            RunDragonAgeExperimentSet(instances, Program.mazeMapPaths); // Obstacle percents and grid sizes built-in to the maps.
         else if (runSpecific == true)
         {
             ProblemInstance instance;
