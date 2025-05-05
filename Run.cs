@@ -841,12 +841,12 @@ public class Run : IDisposable
                 //    ((CBS)((IndependenceDetection)solvers[i]).groupSolver).debug = true;
                 if (solvers[i] is CBS cbsSolver)
                 {
-                    if (cbsSolver.mergeThreshold == 314159) // MAGIC NUMBER WHICH MAKES US ADJUST B according to map
+                    if (cbsSolver.MergeThreshold == 314159) // MAGIC NUMBER WHICH MAKES US ADJUST B according to map
                     {
                         if (instance.gridName.StartsWith("den"))
-                            cbsSolver.mergeThreshold = 10;
+                            cbsSolver.MergeThreshold = 10;
                         else if (instance.gridName.StartsWith("brc") || instance.gridName.StartsWith("ost"))
-                            cbsSolver.mergeThreshold = 100;
+                            cbsSolver.MergeThreshold = 100;
                     }
                 }
 
@@ -854,12 +854,12 @@ public class Run : IDisposable
                 if ( solvers[i] is IndependenceDetection independenceDetection &&
                   independenceDetection.groupSolver is CBS cbsSolver1 )
                 {
-                    if (cbsSolver1.mergeThreshold == 314159) // MAGIC NUMBER SEE ABOVE
+                    if (cbsSolver1.MergeThreshold == 314159) // MAGIC NUMBER SEE ABOVE
                     {
                         if (instance.gridName.StartsWith("den"))
-                            cbsSolver1.mergeThreshold = 10;
+                            cbsSolver1.MergeThreshold = 10;
                         else if (instance.gridName.StartsWith("brc") || instance.gridName.StartsWith("ost"))
-                            cbsSolver1.mergeThreshold = 100;
+                            cbsSolver1.MergeThreshold = 100;
                     }
                 }
 
