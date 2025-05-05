@@ -25,7 +25,7 @@ class Program
             runner.OpenResultsFile(RESULTS_FILE_NAME);
             runner.PrintResultsFileHeader();
             //ProblemInstance instance = runner.GenerateProblemInstance(10, 3, 10);
-            ProblemInstance instance = XlsxReader.ReadProblemFromXlsx("Layout 2025-04-23Simplified.xlsx");
+            ProblemInstance instance = XlsxReader.ReadProblemFromXlsx("Layout 2025-04-23.xlsx");
             instance.Export("Test.instance");
             runner.SolveGivenProblem(instance);
             PlanToConsole.PrintSolution(instance.grid, runner.solvers[0].GetPlan());
