@@ -18,7 +18,7 @@ internal static class PlanToConsole
             {
                 for (int x = 0; x < grid.Length; x++)
                 {
-                    int agentAtPoint = moves.Select( (m, aNum) => new { m, ANum = aNum + 1 }).Where(pair => pair.m.x == x && pair.m.y == y).Select(m => m.ANum).FirstOrDefault() -1;
+                    int agentAtPoint = moves.Select( (m, aNum) => new { m, ANum = aNum + 1 }).Where(pair => pair.m.X == x && pair.m.Y == y).Select(m => m.ANum).FirstOrDefault() -1;
                     if(agentAtPoint >= 0)
                         Console.Write(agentAtPoint);
                     else
