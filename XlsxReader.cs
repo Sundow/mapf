@@ -22,11 +22,7 @@ internal static class XlsxReader
         int columns = worksheet.Cell("B6").GetValue<int>();
         int rows = worksheet.Cell("C6").GetValue<int>();
 
-        bool[][] grid = new bool[columns][];
-        for (int i = 0; i < columns; i++)
-        {
-            grid[i] = new bool[rows];
-        }
+        BitMatrix grid = new(columns, rows);
 
         List<Agent> agents = [];
         List<AgentState> states = [];
@@ -38,7 +34,7 @@ internal static class XlsxReader
             {
                 var cell = worksheet.Cell(j + 7, i + 1);
                 Color fillColor = cell.Style.Fill.BackgroundColor.Color;
-                grid[i][j] = fillColor.ToArgb() == Color.Red.ToArgb();
+                grid[i, j] = fillColor.ToArgb() == Color.Red.ToArgb();
 
                 string cellText = cell.GetString();
 
@@ -59,7 +55,7 @@ internal static class XlsxReader
 
 
         ProblemInstance problem = new();
-        problem.Init([..states], [..grid]);
+        problem.Init([..states], grid);
         problem.ComputeSingleAgentShortestPaths(); // CBS needs it
         return problem;
     }
