@@ -677,7 +677,7 @@ public class Run : IDisposable
                         !goals[aStart[i].lastMove.X][aStart[i].lastMove.Y]) // this spot isn't another agent's goal
                         break;
                     else
-                        aStart[i].lastMove.setOppositeMove(); // Rollback
+                        aStart[i].lastMove.SetOppositeMove(); // Rollback
                 }
                 goals[aStart[i].lastMove.X][aStart[i].lastMove.Y] = true; // Claim agent's new goal
             }
@@ -686,7 +686,7 @@ public class Run : IDisposable
         // Zero the agents' timesteps
         foreach (AgentState agentStart in aStart) 
         {
-            agentStart.lastMove.time = 0;
+            agentStart.lastMove.Time = 0;
         }
 
         // TODO: There is some repetition here of previous instantiation of ProblemInstance. Think how to elegantly bypass this.
@@ -788,7 +788,7 @@ public class Run : IDisposable
                             !goals[agentStates[i].lastMove.X][agentStates[i].lastMove.Y]) // This spot isn't another agent's goal
                             break;
                         else
-                            agentStates[i].lastMove.setOppositeMove(); // Rollback
+                            agentStates[i].lastMove.SetOppositeMove(); // Rollback
                     }
                     goals[agentStates[i].lastMove.X][agentStates[i].lastMove.Y] = true; // Claim agent's new goal
                 }
@@ -796,7 +796,7 @@ public class Run : IDisposable
 
             // Zero the agents' timesteps
             foreach (AgentState agentStart in agentStates)
-                agentStart.lastMove.time = 0;
+                agentStart.lastMove.Time = 0;
 
             return problem;
         }
