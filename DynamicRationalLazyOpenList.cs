@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 
 namespace mapf;
 
@@ -24,7 +22,7 @@ public class DynamicRationalLazyOpenList : OpenList<WorldState>
     protected int accNumExpands;
 
     public DynamicRationalLazyOpenList(ISolver user, IBoundedLazyHeuristic<WorldState> expensive)
-        : base(user)
+        : base(user, new WorldState.Comparer())
     {
         this.expensive = expensive;
         this.ClearPrivateStatistics();
@@ -79,9 +77,9 @@ public class DynamicRationalLazyOpenList : OpenList<WorldState>
         }
 
         // There are alternatives to the lowest cost node in the open list, try to postpone expansion of it:
-        float branchingFactor = ((A_Star)this.user).GetEffectiveBranchingFactor(); // We know the solver is an A* variant.
+        float branchingFactor = ((A_Star)this._user).GetEffectiveBranchingFactor(); // We know the solver is an A* variant.
         const double binaryHeapTau = 0.073359375; // microseconds. From empirical experiments with this infra on my computer.
-        double logN = Math.Log(this.heap.Count, 2); // Removals from and insertions to the queue cost practically zero.
+        double logN = Math.Log(_sortedSet.Count, 2); // Removals from and insertions to the queue cost practically zero.
         double t0 = binaryHeapTau * logN; // TODO: Measure this directly?
         double overhead = 0.023 * this.Peek().AllAgentsState.Length; // in milliseconds. Empirical lowest estimate. The cost of a zero-timeout CBSH run wasn't simply linear with the number of agents for some reason.
 

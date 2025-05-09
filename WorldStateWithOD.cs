@@ -16,17 +16,17 @@ public class WorldStateWithOD : WorldState
     /// All agents with index less than agentTurn are assumed to have already chosen their move for this time step,
     /// while agents with higher index have not chosen their move yet.
     /// </summary>
-    public int agentTurn;
+    public int AgentTurn { get; set; }
 
     public WorldStateWithOD(AgentState[] states, int minDepth = -1, int minCost = -1, MDDNode mddNode = null)
         : base(states, minDepth, minCost, mddNode)
     {
-        this.agentTurn = 0;
+        AgentTurn = 0;
     }
         
     public WorldStateWithOD(WorldStateWithOD cpy) : base(cpy)
     {
-        this.agentTurn = cpy.agentTurn;
+        AgentTurn = cpy.AgentTurn;
     }
         
     /// <summary>
@@ -36,26 +36,26 @@ public class WorldStateWithOD : WorldState
     /// <param name="relevantAgents"></param>
     public WorldStateWithOD(AgentState[] states, List<uint> relevantAgents) : base(states, relevantAgents)
     {
-        this.agentTurn = 0;
+        AgentTurn = 0;
     }
 
     public override (ProblemInstance, ISet<CbsConstraint>) ToProblemInstance(ProblemInstance initial)
     {
         WorldState state = this;
-        if (this.agentTurn != 0)
+        if (AgentTurn != 0)
         {
             // CBS doesn't handle partially expanded nodes well.
             // Use the last fully expanded node and add the additional moves as must conds:
-            state = this.PrevStep; // Points to the last fully expanded node.
+            state = PrevStep; // Points to the last fully expanded node.
         }
 
         ProblemInstance subproblem = initial.Subproblem(state.AllAgentsState); // Can't use base's method because we're operating on a different object
-        var positiveConstraints = new HashSet<CbsConstraint>();
-        if (this.agentTurn != 0)
+        HashSet<CbsConstraint> positiveConstraints = [];
+        if (AgentTurn != 0)
         {
-            for (int i = 0; i < this.agentTurn; ++i)
+            for (int i = 0; i < AgentTurn; ++i)
             {
-                positiveConstraints.Add(new CbsConstraint(this.AllAgentsState[i].agent.agentNum, this.AllAgentsState[i].lastMove));
+                positiveConstraints.Add(new CbsConstraint(AllAgentsState[i].Agent.agentNum, AllAgentsState[i].LastMove));
             }
         }
 
@@ -68,25 +68,25 @@ public class WorldStateWithOD : WorldState
     /// <param name="solution"></param>
     public override void SetSolution(SinglePlan[] solution)
     {
-        if (this.agentTurn == 0)
-            this.singlePlans = SinglePlan.GetSinglePlans(this);
+        if (AgentTurn == 0)
+            singlePlans = SinglePlan.GetSinglePlans(this);
         else
-            this.singlePlans = SinglePlan.GetSinglePlans(this.PrevStep);
+            singlePlans = SinglePlan.GetSinglePlans(PrevStep);
             // ToProblemInstance gives the last proper state as the problem to solve,
             // with must constraints to make the solution go through the steps already
             // taken from there.
 
         for (int i = 0; i < solution.Length; ++i)
-            this.singlePlans[i].ContinueWith(solution[i]);
+            singlePlans[i].ContinueWith(solution[i]);
     }
         
     public override string ToString()
     {
         string ans = base.ToString();
-        if (this.agentTurn == 0)
+        if (AgentTurn == 0)
             return ans;
         else
-            return $"Partial node {ans}, agent turn: {this.agentTurn}";
+            return $"Partial node {ans}, agent turn: {AgentTurn}";
     }
 
     /// <summary>
@@ -99,7 +99,7 @@ public class WorldStateWithOD : WorldState
         {
             int hash = Constants.PRIMES_FOR_HASHING[0];
             hash = hash * Constants.PRIMES_FOR_HASHING[1] + base.GetHashCode();
-            hash = hash * Constants.PRIMES_FOR_HASHING[2] + this.agentTurn;
+            hash = hash * Constants.PRIMES_FOR_HASHING[2] + AgentTurn;
             return hash;
         }
     }
@@ -109,7 +109,7 @@ public class WorldStateWithOD : WorldState
         if (obj == null)
             return false;
         var that = (WorldStateWithOD)obj;
-        if (that.agentTurn != this.agentTurn)
+        if (that.AgentTurn != AgentTurn)
         // It's tempting to think that this check is enough to allow equivalence over different times,
         // because it differentiates between a state where all agents have moved and its
         // child where the first agent WAITed, allowing the child
@@ -121,24 +121,24 @@ public class WorldStateWithOD : WorldState
         // that haven't already moved would be different.
             return false;
 
-        if (this.agentTurn == 0) // All agents have moved, safe to ignore direction information.
+        if (AgentTurn == 0) // All agents have moved, safe to ignore direction information.
             return base.Equals(obj);
 
-        if (this.AllAgentsState.Length != that.AllAgentsState.Length)
+        if (AllAgentsState.Length != that.AllAgentsState.Length)
             return false;
 
         // Comparing the agent states:
-        for (int i = 0; i < this.AllAgentsState.Length; ++i)
+        for (int i = 0; i < AllAgentsState.Length; ++i)
         {
-            if (this.AllAgentsState[i].Equals(that.AllAgentsState[i]) == false)
+            if (AllAgentsState[i].Equals(that.AllAgentsState[i]) == false)
                 return false;
-            if (i < this.agentTurn) // Agent has already moved in this step
+            if (i < AgentTurn) // Agent has already moved in this step
             {
                 bool mightCollideLater = false;
-                for (int j = this.agentTurn; j < this.AllAgentsState.Length; j++)
+                for (int j = AgentTurn; j < AllAgentsState.Length; j++)
                 {
-                    if (this.AllAgentsState[i].lastMove.X == this.AllAgentsState[j].lastMove.X &&
-                        this.AllAgentsState[i].lastMove.Y == this.AllAgentsState[j].lastMove.Y) // Can't just remove the direction and use IsColliding since the moves' time is different, so they'll never collide
+                    if (AllAgentsState[i].LastMove.X == AllAgentsState[j].LastMove.X &&
+                        AllAgentsState[i].LastMove.Y == AllAgentsState[j].LastMove.Y) // Can't just remove the direction and use IsColliding since the moves' time is different, so they'll never collide
                     {
                         mightCollideLater = true;
                         break;
@@ -147,9 +147,9 @@ public class WorldStateWithOD : WorldState
 
                 if (mightCollideLater == true) // Then check the direction too
                 {
-                    if (this.AllAgentsState[i].lastMove.Direction != Direction.NO_DIRECTION &&
-                            that.AllAgentsState[i].lastMove.Direction != Direction.NO_DIRECTION &&
-                            this.AllAgentsState[i].lastMove.Direction != that.AllAgentsState[i].lastMove.Direction) // Can't just use this.allAgentsState[i].lastMove.Equals(that.allAgentsState[i].lastMove) because TimedMoves don't ignore the time.
+                    if (AllAgentsState[i].LastMove.Direction != Direction.NO_DIRECTION &&
+                            that.AllAgentsState[i].LastMove.Direction != Direction.NO_DIRECTION &&
+                            AllAgentsState[i].LastMove.Direction != that.AllAgentsState[i].LastMove.Direction) // Can't just use allAgentsState[i].lastMove.Equals(that.allAgentsState[i].lastMove) because TimedMoves don't ignore the time.
                         return false;
                 }
             }
@@ -165,13 +165,14 @@ public class WorldStateWithOD : WorldState
     /// </summary>
     /// <param name="other"></param>
     /// <returns></returns>
-    public override int CompareTo(IBinaryHeapItem other)
+    public override int CompareTo(WorldState other)
     {
         int res = base.CompareTo(other);
         if (res != 0)
             return res;
 
-        var that = (WorldStateWithOD)other;
+        if(other is not WorldStateWithOD that)
+            return 0;
 
         // Further tie-breaking
         // Prefer more fully generated nodes:
@@ -180,11 +181,11 @@ public class WorldStateWithOD : WorldState
         // A*+OD may finish when all agents reached their goal even if it isn't a fully expanded state, and that's a nice feature!
         // So we prefer more fully generated nodes just because it gives a more DFS-like behavior
         // on the heuristic's fast path to the goal.
-        if (this.agentTurn == 0 && that.agentTurn != 0)
+        if (AgentTurn == 0 && that.AgentTurn != 0)
             return -1;
-        if (that.agentTurn == 0 && this.agentTurn != 0)
+        if (that.AgentTurn == 0 && AgentTurn != 0)
             return 1;
-        return that.agentTurn.CompareTo(this.agentTurn); // Notice the order inversion - bigger is better.
+        return that.AgentTurn.CompareTo(AgentTurn); // Notice the order inversion - bigger is better.
     }
 
     /// <summary>
@@ -194,12 +195,12 @@ public class WorldStateWithOD : WorldState
     /// <returns></returns>
     public override void IncrementConflictCounts(ConflictAvoidanceTable conflictAvoidance)
     {
-        int lastAgentToMove = agentTurn - 1;
-        if (agentTurn == 0)
+        int lastAgentToMove = AgentTurn - 1;
+        if (AgentTurn == 0)
             lastAgentToMove = AllAgentsState.Length - 1;
 
-        AllAgentsState[lastAgentToMove].lastMove.IncrementConflictCounts(conflictAvoidance,
-                                                                        this.ConflictCounts, this.ConflictTimes);
-        this._primaryTieBreaker = this.ConflictCounts.Sum(pair => pair.Value);
+        AllAgentsState[lastAgentToMove].LastMove.IncrementConflictCounts(conflictAvoidance,
+                                                                        ConflictCounts, ConflictTimes);
+        _primaryTieBreaker = ConflictCounts.Sum(pair => pair.Value);
     }
 }
