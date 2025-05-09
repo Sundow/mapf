@@ -37,7 +37,7 @@ class IndependenceDetectionAgentsGroup
         this.singleAgentSolver = singleAgentSolver;
         this.groupSolver = groupSolver;
         this.id = id;
-        this.groupNum = allAgentsState[0].agent.agentNum;
+        this.groupNum = allAgentsState[0].Agent.agentNum;
     }
 
     /// <summary>
@@ -97,7 +97,7 @@ class IndependenceDetectionAgentsGroup
         this.allAgentsState.CopyTo(joinedAgentStates, 0);
         other.allAgentsState.CopyTo(joinedAgentStates, this.allAgentsState.Length);
         if (this.groupSolver.GetType() != typeof(CostTreeSearchSolverOldMatching))
-            Array.Sort(joinedAgentStates, (x, y) => x.agent.agentNum.CompareTo(y.agent.agentNum));  // TODO: Technically could be a merge. FIXME: Is this necessary at all?
+            Array.Sort(joinedAgentStates, (x, y) => x.Agent.agentNum.CompareTo(y.Agent.agentNum));  // TODO: Technically could be a merge. FIXME: Is this necessary at all?
 
         return new IndependenceDetectionAgentsGroup(this.instance, joinedAgentStates, this.singleAgentSolver, this.groupSolver, this.id);
     }
@@ -213,7 +213,7 @@ class IndependenceDetectionAgentsGroup
         string ans = "group {";
         foreach (var agentState in this.allAgentsState)
         {
-            ans += agentState.agent.agentNum + ", ";
+            ans += agentState.Agent.agentNum + ", ";
         }
         ans += "}";
         return ans;

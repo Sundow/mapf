@@ -7,8 +7,8 @@ namespace mapf;
 
 public class CbsConstraint : IComparable
 {
-    public byte agentNum {get; protected set;}
-    public TimedMove move {get; protected set;}
+    public byte agentNum { get; protected set; }
+    public TimedMove move { get; protected set; }
     public bool queryInstance = false;
 
     public CbsConstraint(int agentNum, int posX, int posY, Direction direction, int timeStep)
@@ -21,7 +21,7 @@ public class CbsConstraint : IComparable
         this.Init(agentNum, move);
     }
 
-    public CbsConstraint() : this(-1, -1, -1, Direction.NO_DIRECTION, -1) {} // Nonsense values until Init, just allocate move
+    public CbsConstraint() : this(-1, -1, -1, Direction.NO_DIRECTION, -1) { } // Nonsense values until Init, just allocate move
 
     public CbsConstraint(CbsConflict conflict, ProblemInstance instance, bool agentA)
     {
@@ -31,12 +31,12 @@ public class CbsConstraint : IComparable
         if (agentA)
         {
             move = conflict.agentAmove;
-            agentNum = instance.Agents[conflict.agentAIndex].agent.agentNum;
+            agentNum = instance.Agents[conflict.agentAIndex].Agent.agentNum;
         }
         else
         {
             move = conflict.agentBmove;
-            agentNum = instance.Agents[conflict.agentBIndex].agent.agentNum;
+            agentNum = instance.Agents[conflict.agentBIndex].Agent.agentNum;
         }
 
         this.agentNum = (byte)agentNum;
@@ -84,13 +84,13 @@ public class CbsConstraint : IComparable
         Trace.Assert(this.queryInstance == false || this.move.Direction != Direction.NO_DIRECTION); // Must query regarding a specific direction
         Trace.Assert(other.queryInstance == false || other.move.Direction != Direction.NO_DIRECTION); // Must query regarding a specific direction
         if (this.queryInstance || other.queryInstance) // This way if the constraint is a vertex constraint than it will be equal to a query containing a move from any direction to that position,
-                                                        // and if it is an edge constraint than it will only be equal to queries containing a move from that specific direction to that position.
+                                                       // and if it is an edge constraint than it will only be equal to queries containing a move from that specific direction to that position.
             return this.move.Equals(other.move);
         else // A vertex constraint is different to an edge constraint for the same agentNum and position.
-                // Must check the direction explicitly because vertex constraints have no direction and moves with no direction
-                // compare equal to moves with any direction
-                // TODO: Get rid of all of this using Nathan's advice.
-            return this.move.Equals(other.move) && this.move.Direction == other.move.Direction; 
+             // Must check the direction explicitly because vertex constraints have no direction and moves with no direction
+             // compare equal to moves with any direction
+             // TODO: Get rid of all of this using Nathan's advice.
+            return this.move.Equals(other.move) && this.move.Direction == other.move.Direction;
     }
 
     /// <summary>
@@ -108,10 +108,10 @@ public class CbsConstraint : IComparable
         }
     }
 
-    public int GetTimeStep()  => move.Time; // FIXME: Make this into a property
+    public int GetTimeStep() => move.Time; // FIXME: Make this into a property
 
     public Direction GetDirection() => move.Direction;
-        
+
     public override string ToString() => "{move}-{move.Direction,-12} time={move.time} agentNum {agentNum}";
 
     /// <summary>

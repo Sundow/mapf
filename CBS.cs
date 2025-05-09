@@ -89,7 +89,10 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
     private double _accTimePlanningPaths;
     private double _accTimeBuildingMdds;
 
+    private static readonly IComparer<CbsNode> _comparer = new CbsNode.Comparer();
+
     public int SolutionCost { get; private set; }
+
     /// <summary>
     /// The difference between the solution's cost and the f of the root node.
     /// Notice root.g != 0 in CBS.
@@ -104,6 +107,9 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
     /// won't be found.
     /// </summary>
     private int _maxSolutionCost;
+
+    private static readonly CbsNode.Comparer _cbsNodeComparer = new();
+
     /// <summary>
     /// Goal Nodes with with a lower cost aren't considered a goal. Used directly by CbsNode.
     /// </summary>
@@ -113,7 +119,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
     /// regardless of whether a goal node was found. Note maxSolutionCost stops the search when
     /// the same F value is exhausted from the open list later.
     /// </summary>
-    public int TargetF 
+    public int TargetF
     {
         get => _targetF;
         set
@@ -196,9 +202,9 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
         )
     {
         if (heuristic == null)
-            OpenList = new OpenList<CbsNode>(this);
+            OpenList = new OpenList<CbsNode>(this, _comparer);
         else
-            OpenList = new DynamicLazyOpenList<CbsNode>(this, heuristic);
+            OpenList = new DynamicLazyOpenList<CbsNode>(this, _comparer, heuristic);
         MergeThreshold = mergeThreshold;
         _solver = generalSolver;
         _singleAgentSolver = singleAgentSolver;
@@ -212,9 +218,9 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
                          conflictChoice != ConflictChoice.CARDINAL_LOOKAHEAD &&
                          conflictChoice != ConflictChoice.CARDINAL_MDD_THEN_MERGE_EARLY_MOST_CONFLICTING_SMALLEST_GROUP &&
                          conflictChoice != ConflictChoice.CARDINAL_MDD_THEN_MERGE_EARLY_MOST_CONFLICTING_AND_SMALLEST_GROUP,  // TODO: Might be OK. Need to look at it.
-		                 "Under makespan, increasing the cost for a single agent might not increase the cost for the solution." +
-		                 "Before this strategy is enabled we need to add a consideration of whether the agent whose cost will " +
-		                 "increase has the highest cost in the solution first");
+                         "Under makespan, increasing the cost for a single agent might not increase the cost for the solution." +
+                         "Before this strategy is enabled we need to add a consideration of whether the agent whose cost will " +
+                         "increase has the highest cost in the solution first");
         }
         DisableTieBreakingByMinOpsEstimate = disableTieBreakingByMinOpsEstimate;
         _lookaheadMaxExpansions = lookaheadMaxExpansions;
@@ -252,7 +258,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
         {
             foreach (var agentState in problemInstance.Agents)
             {
-                constraints.Add(new CbsConstraint(agentState.agent.agentNum, illegalMove));
+                constraints.Add(new CbsConstraint(agentState.Agent.agentNum, illegalMove));
             }
         }
         Setup(problemInstance, illegalMoves.Max(move => move.Time), stopwatch, CAT, constraints, null, targetCost, targetCost);
@@ -371,7 +377,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
         // Statistics are reset on Setup.
     }
 
-    public virtual string GetName() 
+    public virtual string GetName()
     {
         string lowLevelSolvers;
         if (MergeThreshold == -1 || Object.ReferenceEquals(_singleAgentSolver, _solver))
@@ -757,12 +763,12 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
             // Check if max time has been exceeded
             if (_stopwatch.ElapsedMilliseconds > Constants.MAX_TIME)
             {
-                SolutionCost = (int) Constants.SpecialCosts.TIMEOUT_COST;
+                SolutionCost = (int)Constants.SpecialCosts.TIMEOUT_COST;
                 Console.WriteLine("Out of time");
                 _solutionDepth = maxExpandedNodeF - initialEstimate; // A minimum estimate.
-                                                                         // Can't use top of OPEN's f-value instead of openList.Peek().f because we may have
-                                                                         // timed out while expanding and before generating nodes that would have led to the
-                                                                         // optimal solution, and the remaining nodes in OPEN are junk
+                                                                     // Can't use top of OPEN's f-value instead of openList.Peek().f because we may have
+                                                                     // timed out while expanding and before generating nodes that would have led to the
+                                                                     // optimal solution, and the remaining nodes in OPEN are junk
                 Clear(); // Total search time exceeded - we're not going to resume this search.
                 CleanGlobals();
                 return false;
@@ -844,10 +850,10 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
 
             // Check conditions that stop the search before a goal is found
             if (currentNode.F >= TargetF || // Node is good enough
-                _singleAgentSolver.GetAccumulatedGenerated() + _solver.GetAccumulatedGenerated() > 
+                _singleAgentSolver.GetAccumulatedGenerated() + _solver.GetAccumulatedGenerated() >
                     LowLevelGeneratedCap || // Stop because this is taking too long.
-                                                    // We're looking at _generated_ low level nodes since that's an indication to the amount of work done,
-                                                    // while expanded nodes is an indication of the amount of good work done.
+                                            // We're looking at _generated_ low level nodes since that's an indication to the amount of work done,
+                                            // while expanded nodes is an indication of the amount of good work done.
                 (MilliCap != int.MaxValue && // (This check is much cheaper than the method call)
                     _stopwatch.ElapsedMilliseconds > MilliCap)) // Search is taking too long.
             {
@@ -878,7 +884,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
             _solutionDepth = maxExpandedNodeF - initialEstimate; // A minimum estimate
         }
         else
-            SolutionCost = (int) Constants.SpecialCosts.NO_SOLUTION_COST;
+            SolutionCost = (int)Constants.SpecialCosts.NO_SOLUTION_COST;
         Clear(); // we're not going to resume this search - it either timed out or the problem is unsolvable
         CleanGlobals();
         return false;
@@ -925,9 +931,9 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
                 (child, closedListHitChildCost) = MergeExpand(node);
                 if (child == null)
                     return (adopted: false, children, reinsertParent: false); // A timeout occured,
-                                                                                // or the child was already in the closed list,
-                                                                                // or there were just too many constraints
-                                                                                // (happens with ID, which adds whole paths as constraints)
+                                                                              // or the child was already in the closed list,
+                                                                              // or there were just too many constraints
+                                                                              // (happens with ID, which adds whole paths as constraints)
             }
             else
             {
@@ -943,10 +949,10 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
                 _maxSizeGroup = Math.Max(_maxSizeGroup, child.GetGroupSize(conflict.agentAIndex));
                 bool solved = child.Solve(MinSolutionTimeStep);
                 child.H = node.F - child.G;
-                
+
                 //if (debug)
-                    Debug.WriteLine($"Restarting the search with agents {node.AgentsGroupAssignment[conflict.agentAIndex]} and" +
-                                    $" {node.AgentsGroupAssignment[conflict.agentBIndex]} merged.");
+                Debug.WriteLine($"Restarting the search with agents {node.AgentsGroupAssignment[conflict.agentAIndex]} and" +
+                                $" {node.AgentsGroupAssignment[conflict.agentBIndex]} merged.");
                 Reset();
 
                 if (solved == false)  // Likely due to a time-out
@@ -1036,7 +1042,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
 
         return (adopted: false, children, reinsertParent);
     }
-        
+
     private void ExpandIgnoringCardinalsButSupportingBP2(CbsNode node)
     {
         int parentCost = node.G;
@@ -1044,7 +1050,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
         IList<CbsNode> children = new List<CbsNode>(2);
         bool reinsertParent = false;
         bool adopted = false;
-             
+
         int origCardinalConflictSplits = _cardinalConflictSplits;
         int origSemiCardinalConflictSplits = _semiCardinalConflictSplits;
         int origNonCardinalConflictSplits = _nonCardinalConflictSplits;
@@ -1058,7 +1064,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
             bool adoptionPerformedBefore = false;
             while (true) // Until a node with a higher cost is found or a goal is found
             {
-                OpenList<CbsNode> lookAheadOpenList = new(this);
+                OpenList<CbsNode> lookAheadOpenList = new(this, _comparer);
                 HashSet<CbsNode> lookAheadSameCostNodes = [];
                 HashSet<CbsNode> lookAheadLargerCostNodes = [];
                 HashSet<CbsNode> lookAheadSameCostNodesToReinsertWithHigherCost = [];
@@ -1171,14 +1177,14 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
                         _closedList.Remove(lookAheadNode); // Just so they'll be inserted into the open list at the end of the method
                     foreach (CbsNode lookAheadNode in lookAheadSameCostNodes)
                         _closedList.Remove(lookAheadNode); // Just so they'll be inserted into the open list at the end of the method
-                                                                // The only difference in closed list cleanup after adoption is that expanded same cost nodes are also removed from the closed list.
+                                                           // The only difference in closed list cleanup after adoption is that expanded same cost nodes are also removed from the closed list.
                 }
             }
         }
         else // bypassStrategy == BypassStrategy.BEST_FIT_LOOKAHEAD and this set of costs not already done
         {
             // FIXME: lookaheadMaxExpansions isn't respected correctly here. We actually limit the number of same-cost nodes generated, which is similar but not the same.
-            OpenList<CbsNode> lookAheadOpenList = new(this);
+            OpenList<CbsNode> lookAheadOpenList = new(this, _comparer);
             HashSet<CbsNode> lookAheadSameCostNodes = [];
             HashSet<CbsNode> lookAheadLargerCostNodes = [];
             HashSet<CbsNode> lookAheadSameCostNodesToReinsertWithHigherCost = [];
@@ -1327,7 +1333,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
             // Bequeath remainder of h from parent
             int remainingParentH = parentH - (child.G - parentCost);
             if (child.H < remainingParentH)
-                child.H = (ushort) remainingParentH;
+                child.H = (ushort)remainingParentH;
 
             if (_bypassStrategy == BypassStrategy.BEST_FIT_LOOKAHEAD)
             {
@@ -1500,7 +1506,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
                  ))
             {
                 child.H = (ushort)Math.Max(child.H, node.MinimumVertexCover - 1);  // -1 because we've just resolved a cardinal conflict.
-                                                                                    // Even if the cost increased by more than 1 for the child, this is still our estimate, based on all the other conflicts
+                                                                                   // Even if the cost increased by more than 1 for the child, this is still our estimate, based on all the other conflicts
                 _pathMaxPlusBoosts++;
             }
             if (child.F <= _maxSolutionCost)
@@ -1541,7 +1547,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
     {
         CbsConflict conflict = node.GetConflict();
         int closedListHitChildCost = -1;
-            
+
         CbsNode child = new(node, node.AgentsGroupAssignment[conflict.agentAIndex], node.AgentsGroupAssignment[conflict.agentBIndex]);
         if (_closedList.ContainsKey(child) == false) // We may have already merged these agents in another node
         {
@@ -1593,61 +1599,61 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
     protected (CbsNode child, int closedListHitChildCost) ConstraintExpand(CbsNode node, bool doLeftChild)
     {
         CbsConflict conflict = node.GetConflict();
-        int conflictingAgentIndex = doLeftChild? conflict.agentAIndex : conflict.agentBIndex;
+        int conflictingAgentIndex = doLeftChild ? conflict.agentAIndex : conflict.agentBIndex;
         CbsNode.ExpansionState expansionsState = doLeftChild ? node.AgentAExpansion : node.AgentBExpansion;
         CbsNode.ExpansionState otherChildExpansionsState = doLeftChild ? node.AgentBExpansion : node.AgentAExpansion;
-        string agentSide = doLeftChild? "left" : "right";
+        string agentSide = doLeftChild ? "left" : "right";
         int planSize = node.SingleAgentPlans[conflictingAgentIndex].GetSize();  // Used to check if the conflict occurs while the agent is at its goal
         int groupSize = node.GetGroupSize(conflictingAgentIndex);
         CbsConflict.WillCostIncrease willCostIncrease = doLeftChild ? node.Conflict.willCostIncreaseForAgentA : node.Conflict.willCostIncreaseForAgentB;
 
         // Check if expansion should be deferred
         if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS && // Otherwise adding a constraint to an agent at a time step after
-                                                                                // it reaches its goal doesn't necessarily increase the cost,
-                                                                                // so we're not allowed to defer expansion.
-                                                                                // I think in a makespan variant this optimization is inapplicable:
-                                                                                // You can't have a conflict at the last step of the agent with the longest plan,
-                                                                                // because who would conflict with it? An agent with a longer plan? (no such agent)
-                                                                                // An agent with a plan of the same length? (but goals don't collide)
+                                                                             // it reaches its goal doesn't necessarily increase the cost,
+                                                                             // so we're not allowed to defer expansion.
+                                                                             // I think in a makespan variant this optimization is inapplicable:
+                                                                             // You can't have a conflict at the last step of the agent with the longest plan,
+                                                                             // because who would conflict with it? An agent with a longer plan? (no such agent)
+                                                                             // An agent with a plan of the same length? (but goals don't collide)
             ((Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.ORIG &&
             expansionsState == CbsNode.ExpansionState.NOT_EXPANDED && conflict.isVertexConflict == true &&  // An edge conflict at the goal isn't guaranteed
-                                                                                                    // to increase the cost - the agent might be able to reach the goal from another direction
+                                                                                                            // to increase the cost - the agent might be able to reach the goal from another direction
                 conflict.timeStep >= node.SingleAgentCosts[conflictingAgentIndex] && // Can't just check whether the node is at its goal - 
-                                                                                        // the plan may involve it passing through its goal and returning to it later because of preexisting constraints.
-                                                                                        // This assumes unit move costs
+                                                                                     // the plan may involve it passing through its goal and returning to it later because of preexisting constraints.
+                                                                                     // This assumes unit move costs
                 node.H < conflict.timeStep + 1 - node.SingleAgentCosts[conflictingAgentIndex] && // Otherwise we won't be increasing its h and there would be no reason to delay expansion
-                                                                                                    // The agent's new cost will be at least conflict.timeStep + 1, so however much this is more than its current cost 
-                                                                                                    // is an admissible heuristic
+                                                                                                 // The agent's new cost will be at least conflict.timeStep + 1, so however much this is more than its current cost 
+                                                                                                 // is an admissible heuristic
                 groupSize == 1) || // Otherwise an agent in the group can be forced to take a longer
-                                // route without increasing the group's cost because
-                                // another agent would be able to take a shorter route.
+                                   // route without increasing the group's cost because
+                                   // another agent would be able to take a shorter route.
             (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.WAITING_AT_GOAL_ALWAYS_FREE &&
             expansionsState == CbsNode.ExpansionState.NOT_EXPANDED && conflict.isVertexConflict == true &&
             ((conflict.timeStep > planSize - 1 && node.H < 2) ||
                 (conflict.timeStep == planSize - 1 && node.H < 1)) &&  // Otherwise we won't be increasing its h and there would be no reason to delay expansion
             groupSize == 1))) // Otherwise an agent in the group can be forced to take a longer
-                                // route without increasing the group's cost because
-                                // another agent would be able to take a shorter route.
-        // Conflict happens when or after the agent reaches its goal, and the agent is in a single-agent group.
-        // With multi-agent groups, banning the goal doesn't guarantee a higher cost solution,
-        // since if an agent is forced to take a longer route it may enable another agent in the group
-        // to take a shorter route, getting an alternative solution of the same cost
-        // The child would cost a lot because:
-        // A) All WAIT moves in the goal before leaving it now add to the g (if we're in the original problem variant).
-        // B) We force the low level to compute a path longer than the optimal,
-        //    and with a bad suprise towards the end in the form of a constraint,
-        //    so the low-level's SIC heuristic performs poorly.
-        // C) We're banning the GOAL from all directions (since this is a vertex conflict),
-        //    so any alternative plan will at least cost 1 more.
-        //    We're ignoring edge conflicts because they can only happen at the goal when reaching it,
-        //    and aren't guaranteed to increase the cost because the goal can still be possibly reached from another edge.
+                              // route without increasing the group's cost because
+                              // another agent would be able to take a shorter route.
+                              // Conflict happens when or after the agent reaches its goal, and the agent is in a single-agent group.
+                              // With multi-agent groups, banning the goal doesn't guarantee a higher cost solution,
+                              // since if an agent is forced to take a longer route it may enable another agent in the group
+                              // to take a shorter route, getting an alternative solution of the same cost
+                              // The child would cost a lot because:
+                              // A) All WAIT moves in the goal before leaving it now add to the g (if we're in the original problem variant).
+                              // B) We force the low level to compute a path longer than the optimal,
+                              //    and with a bad suprise towards the end in the form of a constraint,
+                              //    so the low-level's SIC heuristic performs poorly.
+                              // C) We're banning the GOAL from all directions (since this is a vertex conflict),
+                              //    so any alternative plan will at least cost 1 more.
+                              //    We're ignoring edge conflicts because they can only happen at the goal when reaching it,
+                              //    and aren't guaranteed to increase the cost because the goal can still be possibly reached from another edge.
         {
             // Defer expansion. The conflict happens while the agent is at its goal - the cost will
             // surely increase.
             if (otherChildExpansionsState == CbsNode.ExpansionState.DEFERRED)
-                    throw new Exception("Unexpected: Expansion of both children deffered, " +
-                        "but this is a vertex conflict so that means the targets for the " +
-                        "two agents are equal, which is illegal");
+                throw new Exception("Unexpected: Expansion of both children deffered, " +
+                    "but this is a vertex conflict so that means the targets for the " +
+                    "two agents are equal, which is illegal");
 
             Debug.WriteLine($"Skipping {agentSide} child for now");
             if (doLeftChild)
@@ -1665,9 +1671,9 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
             else if (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.WAITING_AT_GOAL_ALWAYS_FREE)
             {
                 if (conflict.timeStep > planSize - 1) // Agent will need to step out and step in to the goal, at least
-                    node.H = Math.Max(node.H, (ushort) 1);
+                    node.H = Math.Max(node.H, (ushort)1);
                 else // Conflict is just when agent enters the goal, it'll have to at least wait one timestep.
-                    node.H = Math.Max(node.H, (ushort) 1);
+                    node.H = Math.Max(node.H, (ushort)1);
                 // Technically, we've already made sure above we're going to increase the node's h,
                 // This is just to make the line look correct without reading the complex if statement above.
             }
@@ -1797,16 +1803,16 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
     }
 
     public int GetSolutionDepth() { return _solutionDepth; }
-        
+
     public long GetMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
-        
+
     public SinglePlan[] GetSinglePlans() => _goalNode.SingleAgentPlans;
 
     public virtual int[] GetSingleCosts() => _goalNode.SingleAgentCosts;
 
     public int GetHighLevelExpanded() => _highLevelExpanded;
-    public int GetHighLevelGenerated()  => _highLevelGenerated;
-    public int GetLowLevelExpanded()  => _solver.GetAccumulatedExpanded();
+    public int GetHighLevelGenerated() => _highLevelGenerated;
+    public int GetLowLevelExpanded() => _solver.GetAccumulatedExpanded();
     public int GetLowLevelGenerated() => _solver.GetAccumulatedGenerated();
     public int GetExpanded() => _highLevelExpanded;
     public int GetGenerated() => _highLevelGenerated;

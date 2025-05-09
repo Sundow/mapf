@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Diagnostics;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace mapf;
 
@@ -12,7 +14,7 @@ namespace mapf;
 /// be pushed back, and is allowed to stop once this estimate was reached.
 /// </summary>
 /// <typeparam name="Item"></typeparam>
-public class DynamicLazyOpenList<Item> : OpenList<Item> where Item: IBinaryHeapItem, IHeuristicSearchNode
+public class DynamicLazyOpenList<Item> : OpenList<Item> where Item : IHeuristicSearchNode
 {
     public ILazyHeuristic<Item> expensive;
     public Stopwatch stopwatch;
@@ -20,14 +22,16 @@ public class DynamicLazyOpenList<Item> : OpenList<Item> where Item: IBinaryHeapI
     protected int nodesPushedBack;
     protected int accNodesPushedBack;
     private bool _debug;
+    private readonly IComparer<Item> _comparer;
 
-    public DynamicLazyOpenList(ISolver user, ILazyHeuristic<Item> expensive)
-        : base(user)
+    public DynamicLazyOpenList(ISolver user, IComparer<Item> comparer, ILazyHeuristic<Item> expensive)
+        : base(user, comparer)
     {
         this.expensive = expensive;
         this.ClearStatistics();
         this.accNodesPushedBack = 0;
-        this._debug = false;
+        _debug = false;
+        _comparer = comparer;
     }
 
     public override string GetName()
@@ -70,8 +74,8 @@ public class DynamicLazyOpenList<Item> : OpenList<Item> where Item: IBinaryHeapI
                 node.HBonus += expensiveEstimate - node.H;
                 node.H = expensiveEstimate;
             }
-                
-            if (node.CompareTo(next) == 1) // node is not the smallest F anymore - re-insert into open list
+
+            if (_comparer.Compare(node, next) == 1) // node is not the smallest F anymore - re-insert into open list
             {
                 this.Add(node);
                 this.nodesPushedBack++;

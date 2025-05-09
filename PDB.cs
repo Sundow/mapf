@@ -49,7 +49,7 @@ class PDB : IHeuristicCalculator<WorldState>
         return 0;
     }
 
-    public virtual void build() {}
+    public virtual void build() { }
 
     public virtual uint h(WorldState s)
     {
@@ -100,7 +100,7 @@ class PDB : IHeuristicCalculator<WorldState>
         }
 
         // Try all legal moves of the agent
-        foreach (TimedMove agentLocation in currentNode.AllAgentsState[agentIndex].lastMove.GetNextMoves())
+        foreach (TimedMove agentLocation in currentNode.AllAgentsState[agentIndex].LastMove.GetNextMoves())
         {
             if (IsValid(agentLocation, agentIndex, previousMoves))
             {
@@ -108,7 +108,7 @@ class PDB : IHeuristicCalculator<WorldState>
                 childNode = new WorldState(currentNode);
                 childNode.AllAgentsState[agentIndex].MoveTo(agentLocation);
                 childNode.PrevStep = prev;
-                Expand(childNode, agentIndex + 1,children, previousMoves);
+                Expand(childNode, agentIndex + 1, children, previousMoves);
                 previousMoves.Remove(agentLocation);
             }
         }

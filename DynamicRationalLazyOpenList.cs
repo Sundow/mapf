@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 
 namespace mapf;
 
@@ -24,7 +23,7 @@ public class DynamicRationalLazyOpenList : OpenList<WorldState>
     protected int accNumExpands;
 
     public DynamicRationalLazyOpenList(ISolver user, IBoundedLazyHeuristic<WorldState> expensive)
-        : base(user)
+        : base(user, new WorldState.Comparer())
     {
         this.expensive = expensive;
         this.ClearPrivateStatistics();
@@ -79,9 +78,9 @@ public class DynamicRationalLazyOpenList : OpenList<WorldState>
         }
 
         // There are alternatives to the lowest cost node in the open list, try to postpone expansion of it:
-        float branchingFactor = ((A_Star)this.user).GetEffectiveBranchingFactor(); // We know the solver is an A* variant.
+        float branchingFactor = ((A_Star)this._user).GetEffectiveBranchingFactor(); // We know the solver is an A* variant.
         const double binaryHeapTau = 0.073359375; // microseconds. From empirical experiments with this infra on my computer.
-        double logN = Math.Log(this.heap.Count, 2); // Removals from and insertions to the queue cost practically zero.
+        double logN = Math.Log(_sortedSet.Count, 2); // Removals from and insertions to the queue cost practically zero.
         double t0 = binaryHeapTau * logN; // TODO: Measure this directly?
         double overhead = 0.023 * this.Peek().AllAgentsState.Length; // in milliseconds. Empirical lowest estimate. The cost of a zero-timeout CBSH run wasn't simply linear with the number of agents for some reason.
 
@@ -212,9 +211,9 @@ public class DynamicRationalLazyOpenList : OpenList<WorldState>
             //Console.WriteLine("Texpand:{0}={1}/{2}", tExpand, this.sumExpandTimes * 1000, this.numExpands);
             //Console.WriteLine("T0:{0}", t0);
             //for (int i=0 ; i<NUM_CAPS ; ++i)
-                //Console.WriteLine("Ph for cap {0}:{1}={2}/{3}", ((double)(1 << i)) / 1000, this.capData[i].ph, this.capData[i].success, this.capData[i].success + this.capData[i].failure);
+            //Console.WriteLine("Ph for cap {0}:{1}={2}/{3}", ((double)(1 << i)) / 1000, this.capData[i].ph, this.capData[i].success, this.capData[i].success + this.capData[i].failure);
             //for (int i = 0; i < NUM_CAPS; ++i)
-                //Console.WriteLine("Expected regret for cap {0}:{1}", ((double)(1 << i)) / 1000, expectedRegret[i]/1000.0);
+            //Console.WriteLine("Expected regret for cap {0}:{1}", ((double)(1 << i)) / 1000, expectedRegret[i]/1000.0);
 
             if (node.G + node.H < lastF) // Must improve the heuristic estimate to be consistent
                 millisCap = Double.MaxValue;
@@ -251,13 +250,13 @@ public class DynamicRationalLazyOpenList : OpenList<WorldState>
                     for (int j = 0; (j < lowestCapThatWouldHaveWorked) && (j < NUM_CAPS); ++j)
                     {
                         this.capData[j].failure += 1;
-                        this.capData[j].ph = /*(1 - MOVING_AVERAGE_FACTOR) * this.capData[j].ph + MOVING_AVERAGE_FACTOR * */ 
+                        this.capData[j].ph = /*(1 - MOVING_AVERAGE_FACTOR) * this.capData[j].ph + MOVING_AVERAGE_FACTOR * */
                                                     this.capData[j].success / (this.capData[j].success + this.capData[j].failure);
                     }
                     for (int j = lowestCapThatWouldHaveWorked; j < NUM_CAPS; ++j)
                     {
                         this.capData[j].success += 1;
-                        this.capData[j].ph = /*(1 - MOVING_AVERAGE_FACTOR) * this.capData[j].ph + MOVING_AVERAGE_FACTOR * */ 
+                        this.capData[j].ph = /*(1 - MOVING_AVERAGE_FACTOR) * this.capData[j].ph + MOVING_AVERAGE_FACTOR * */
                                                     this.capData[j].success / (this.capData[j].success + this.capData[j].failure);
                     }
                 }
@@ -267,7 +266,7 @@ public class DynamicRationalLazyOpenList : OpenList<WorldState>
                     for (int j = 0; (j <= effectiveCap) && (j < NUM_CAPS); ++j)
                     {
                         this.capData[j].failure += 1;
-                        this.capData[j].ph = /*(1 - MOVING_AVERAGE_FACTOR) * this.capData[j].ph + MOVING_AVERAGE_FACTOR * */ 
+                        this.capData[j].ph = /*(1 - MOVING_AVERAGE_FACTOR) * this.capData[j].ph + MOVING_AVERAGE_FACTOR * */
                                                     this.capData[j].success / (this.capData[j].success + this.capData[j].failure); // This is only necessary for the first runs so the Ph won't jitter too much.
                     }
                     // No info on whether a larger cap would have worked.
@@ -291,7 +290,7 @@ public class DynamicRationalLazyOpenList : OpenList<WorldState>
             }
         }
 
-        finish:
+    finish:
         this.lastF = node.G + node.H;
         this.expandStartTime = this.stopwatch.ElapsedMilliseconds;
         return node;

@@ -9,7 +9,7 @@ using System.Collections;
 namespace mapf;
 
 [DebuggerDisplay("hash = {GetHashCode()}, f = {f}, g = {g}, h = {h}")]
-public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristicSearchNode
+public class CbsNode : IHeuristicSearchNode
 {
     public int G { set; get; }  // Value depends on Constants.costFunction and Constants.sumOfCostsVariant, Sum of agent makespans until they reach their goal
 
@@ -56,7 +56,6 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
     /// For each agent in the problem instance, maps agent _nums_ of agents it collides with to the time of their first collision.
     /// </summary>
     public Dictionary<int, List<int>>[] ConflictTimesPerAgent { get; private set; }
-    private int _binaryHeapIndex;
     public CbsConflict Conflict { get; private set; }
     private CbsConstraint _constraint;
     /// <summary>
@@ -67,7 +66,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
     private ushort _depth;
     public ushort[] AgentsGroupAssignment { get; }
     public ushort ReplanSize { get; private set; }
-    public enum ExpansionState: byte
+    public enum ExpansionState : byte
     {
         NOT_EXPANDED = 0,
         DEFERRED,
@@ -142,7 +141,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         AgentNumToIndex = [];
         for (int i = 0; i < numberOfAgents; i++)
         {
-            AgentNumToIndex[CBS.GetProblemInstance().Agents[i].agent.agentNum] = i;
+            AgentNumToIndex[CBS.GetProblemInstance().Agents[i].Agent.agentNum] = i;
         }
         _depth = 0;
         ReplanSize = 1;
@@ -152,7 +151,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         _constraint = null;
         _solver = solver;
         _singleAgentSolver = singleAgentSolver;
-        MinimumVertexCover = (int) ConflictGraph.MinVertexCover.NOT_SET;
+        MinimumVertexCover = (int)ConflictGraph.MinVertexCover.NOT_SET;
     }
 
     /// <summary>
@@ -204,7 +203,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
                 ConflictTimesPerAgent[i][kvp.Key] = [.. kvp.Value];
         }
         AgentsGroupAssignment = parent.AgentsGroupAssignment.ToArray();
-        
+
         for (int i = 0; i < SingleAgentPlans.Length; i++)
         {
             NewPlans[i] = false;
@@ -212,7 +211,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         ISet<int> group = GetGroup(agentToReplan);
         foreach (int i in group)
             NewPlans[i] = true;
-        
+
         AgentNumToIndex = parent.AgentNumToIndex;
         Prev = parent;
         _constraint = newConstraint;
@@ -222,7 +221,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         ReplanSize = 1;
         _solver = parent._solver;
         _singleAgentSolver = parent._singleAgentSolver;
-        MinimumVertexCover = (int) ConflictGraph.MinVertexCover.NOT_SET;
+        MinimumVertexCover = (int)ConflictGraph.MinVertexCover.NOT_SET;
     }
 
     /// <summary>
@@ -260,7 +259,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         _solver = parent._solver;
         _singleAgentSolver = parent._singleAgentSolver;
         CBS = parent.CBS;
-            
+
         MergeGroups(mergeGroupA, mergeGroupB);
 
         for (int i = 0; i < SingleAgentPlans.Length; i++)
@@ -271,7 +270,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         foreach (int i in mergedGroup)
             NewPlans[i] = true;
 
-        MinimumVertexCover = (int) ConflictGraph.MinVertexCover.NOT_SET;
+        MinimumVertexCover = (int)ConflictGraph.MinVertexCover.NOT_SET;
     }
 
     /// <summary>
@@ -313,9 +312,9 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             ((HashSet_U<CbsConstraint>)constraints).Join(newConstraints);
         }
 
-            
+
         ISet<CbsConstraint> positiveConstraints = null;
-        Dictionary<int,int> agentsWithPositiveConstraints = null;
+        Dictionary<int, int> agentsWithPositiveConstraints = null;
         HashSet<CbsConstraint> newPositiveConstraints = null;
         if (CBS.DoMalte)
             newPositiveConstraints = GetPositiveConstraints();
@@ -349,7 +348,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         for (int i = 0; i < AgentsGroupAssignment.Length; i++)
         {
             if (subGroups[AgentsGroupAssignment[i]] == null)
-                subGroups[AgentsGroupAssignment[i]] = [ problem.Agents[i] ];
+                subGroups[AgentsGroupAssignment[i]] = [problem.Agents[i]];
             else
                 subGroups[AgentsGroupAssignment[i]].Add(problem.Agents[i]);
         }
@@ -362,16 +361,16 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
                 continue;
             List<AgentState> subGroup = subGroups[i];
 
-            bool agentGroupHasConstraints = (agentsWithConstraints != null) && subGroup.Any<AgentState>(state => agentsWithConstraints.ContainsKey(state.agent.agentNum));
-            bool agentGroupHasMustConstraints = (agentsWithPositiveConstraints != null) && subGroup.Any<AgentState>(state => agentsWithPositiveConstraints.ContainsKey(state.agent.agentNum));
+            bool agentGroupHasConstraints = (agentsWithConstraints != null) && subGroup.Any<AgentState>(state => agentsWithConstraints.ContainsKey(state.Agent.agentNum));
+            bool agentGroupHasMustConstraints = (agentsWithPositiveConstraints != null) && subGroup.Any<AgentState>(state => agentsWithPositiveConstraints.ContainsKey(state.Agent.agentNum));
 
             // Solve for a single agent:
-            if (agentGroupHasConstraints == false  &&
+            if (agentGroupHasConstraints == false &&
                 agentGroupHasMustConstraints == false &&
                 subGroup.Count == 1) // No constraints on this agent. Shortcut available (that doesn't consider the CAT, though!).
             {
                 SingleAgentPlans[i] = new SinglePlan(problem.Agents[i]); // All moves up to starting pos, if any
-                SingleAgentPlans[i].AgentNum = problem.Agents[AgentsGroupAssignment[i]].agent.agentNum; // Use the group's representative
+                SingleAgentPlans[i].AgentNum = problem.Agents[AgentsGroupAssignment[i]].Agent.agentNum; // Use the group's representative
                 SinglePlan optimalPlan = problem.GetSingleAgentOptimalPlan(problem.Agents[i]);
                 // Count conflicts:
                 ConflictCountsPerAgent[i] = [];
@@ -382,7 +381,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
                     timedMove.IncrementConflictCounts(CAT, ConflictCountsPerAgent[i], ConflictTimesPerAgent[i]);
                 }
                 SingleAgentPlans[i].ContinueWith(optimalPlan);
-                SingleAgentCosts[i] = problem.Agents[i].g + problem.GetSingleAgentOptimalCost(problem.Agents[i]);
+                SingleAgentCosts[i] = problem.Agents[i].G + problem.GetSingleAgentOptimalCost(problem.Agents[i]);
                 if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
                 {
                     G += (ushort)SingleAgentCosts[i];
@@ -408,7 +407,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             // Add the group's plan to the internal CAT. In the case we use ready-made plans from the heuristic, this is still needed to allow us to track conflicts.
             foreach (AgentState agentState in subGroup)
             {
-                internalCAT.AddPlan(SingleAgentPlans[AgentNumToIndex[agentState.agent.agentNum]]);
+                internalCAT.AddPlan(SingleAgentPlans[AgentNumToIndex[agentState.Agent.agentNum]]);
             }
         }
 
@@ -424,9 +423,9 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
                     AgentNumToIndex[pair.Key] < i)                                 // Just an optimization. Would also be correct without this check.
                 {
                     ConflictCountsPerAgent[AgentNumToIndex[pair.Key]] // Yes, index here, num there
-                        [problem.Agents[i].agent.agentNum] = pair.Value; // Collisions are symmetrical, and agent "key" didn't see the route for agent "i" when planning.
+                        [problem.Agents[i].Agent.agentNum] = pair.Value; // Collisions are symmetrical, and agent "key" didn't see the route for agent "i" when planning.
                     ConflictTimesPerAgent[AgentNumToIndex[pair.Key]]
-                        [problem.Agents[i].agent.agentNum] = ConflictTimesPerAgent[i][pair.Key];
+                        [problem.Agents[i].Agent.agentNum] = ConflictTimesPerAgent[i][pair.Key];
                 }
             }
         }
@@ -486,7 +485,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             }
             else
                 CAT = internalCAT;
-                
+
 
             HashSet<CbsConstraint> newConstraints = GetConstraints();
             if (CBS.ExternalConstraints != null && CBS.ExternalConstraints.Count != 0)
@@ -523,7 +522,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
 
         ProblemInstance subProblem = problem.Subproblem(subGroup.ToArray());
 
-        Dictionary<int, int> subGroupAgentNums = subGroup.Select(state => state.agent.agentNum).ToDictionary(num => num); // No need to call Distinct(). Each agent appears at most once
+        Dictionary<int, int> subGroupAgentNums = subGroup.Select(state => state.Agent.agentNum).ToDictionary(num => num); // No need to call Distinct(). Each agent appears at most once
 
         IEnumerable<CbsConstraint> myConstraints = constraints.Where(constraint => subGroupAgentNums.ContainsKey(constraint.agentNum)); // TODO: Consider passing only myConstraints to the low level to speed things up.
         if (myConstraints.Count() != 0)
@@ -588,10 +587,10 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         }
         for (int i = 0; i < subGroup.Count; i++)
         {
-            int agentNum = subGroup[i].agent.agentNum;
+            int agentNum = subGroup[i].Agent.agentNum;
             int agentIndex = AgentNumToIndex[agentNum];
             SingleAgentPlans[agentIndex] = singlePlans[i];
-            SingleAgentPlans[agentIndex].AgentNum = problem.Agents[groupNum].agent.agentNum; // Use the group's representative - that's how the plans will be inserted into the CAT later too.
+            SingleAgentPlans[agentIndex].AgentNum = problem.Agents[groupNum].Agent.agentNum; // Use the group's representative - that's how the plans will be inserted into the CAT later too.
             SingleAgentCosts[agentIndex] = singleCosts[i];
             if (i == 0) // This is the group representative
             {
@@ -619,7 +618,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             int i = AgentNumToIndex[agentNumAndAgentNum.Key];
             if (CAT != null)
                 UpdateAtGoalConflictCounts(i, CAT);
-                // Can't use the null coalescing operator because it requires the operands be of the same type :(
+            // Can't use the null coalescing operator because it requires the operands be of the same type :(
             else
                 UpdateAtGoalConflictCounts(i, internalCAT);
         }
@@ -627,10 +626,10 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         if (underSolve == false)
         {
             // Update conflictCountsPerAgent and conflictTimes for all agents
-            int representativeAgentNum = subGroup[0].agent.agentNum;
+            int representativeAgentNum = subGroup[0].Agent.agentNum;
             for (int i = 0; i < ConflictCountsPerAgent.Length; i++)
             {
-                int agentNum = problem.Agents[i].agent.agentNum;
+                int agentNum = problem.Agents[i].Agent.agentNum;
                 if (perAgent.ContainsKey(agentNum))
                 {
                     ConflictCountsPerAgent[i][representativeAgentNum] = perAgent[agentNum];
@@ -651,15 +650,15 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
         {
             G = (ushort)Math.Max(SingleAgentCosts.Sum(), G); // Conserve g from partial 
-                                                                                // expansion if it's higher
-                                                                                // (only happens when shuffling a partially expanded node)
+                                                             // expansion if it's higher
+                                                             // (only happens when shuffling a partially expanded node)
         }
         else if (Constants.costFunction == Constants.CostFunction.MAKESPAN ||
             Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
         {
             G = (ushort)Math.Max(SingleAgentCosts.Max(), G); // Conserve g from partial
-                                                                                // expansion if it's higher
-                                                                                // (only happens when shuffling a partially expanded node)
+                                                             // expansion if it's higher
+                                                             // (only happens when shuffling a partially expanded node)
         }
         else
             throw new NotImplementedException($"Unsupported cost function {Constants.costFunction}");
@@ -742,7 +741,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         {
             if (ConflictCountsPerAgent[j].Count != 0)
             {
-                Debug.Write($"Agent {problem.Agents[j].agent.agentNum} conflict counts: ");
+                Debug.Write($"Agent {problem.Agents[j].Agent.agentNum} conflict counts: ");
                 foreach (var pair in ConflictCountsPerAgent[j])
                 {
                     Debug.Write($"{pair.Key}:{pair.Value} ");
@@ -755,7 +754,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         {
             if (ConflictCountsPerAgent[j].Count != 0)
             {
-                Debug.Write($"Agent {problem.Agents[j].agent.agentNum} conflict times: ");
+                Debug.Write($"Agent {problem.Agents[j].Agent.agentNum} conflict times: ");
                 foreach (var pair in ConflictTimesPerAgent[j])
                 {
                     Debug.Write($"{pair.Key}:[{String.Join(",", pair.Value)}], ");
@@ -793,7 +792,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
     {
         ProblemInstance problem = CBS.GetProblemInstance();
         var afterGoal = new TimedMove(
-            problem.Agents[agentIndex].agent.Goal.X, problem.Agents[agentIndex].agent.Goal.Y,
+            problem.Agents[agentIndex].Agent.Goal.X, problem.Agents[agentIndex].Agent.Goal.Y,
             Direction.Wait, time: 0);
         for (int time = SingleAgentPlans[agentIndex].GetSize(); time < CAT.GetMaxPlanSize(); time++)
         {
@@ -853,12 +852,12 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             }
 
             int minReplansToSolve = vertexCover.Count / 2; // We have a 2-approximation of the size of the cover -
-                                                            // half that is at least half the value we're trying to approximate.
-                                                            // (The size of the approximation is always even)
-            //if (cbs.debug)
-            //    Debug.WriteLine("min replans lower estimate: " + minReplansToSolve);
+                                                           // half that is at least half the value we're trying to approximate.
+                                                           // (The size of the approximation is always even)
+                                                           //if (cbs.debug)
+                                                           //    Debug.WriteLine("min replans lower estimate: " + minReplansToSolve);
             if (CBS.MergeThreshold != -1) // Merges possible, account for them
-                                                // This assumes the current merging strategy is used.
+                                          // This assumes the current merging strategy is used.
             {
                 if (CBS.GetType() == typeof(CBS))
                 {
@@ -1012,7 +1011,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             // Assumes mergeThreshold == -1.
             _nextConflicts = GetConflictsCardinalFirstUsingMdd().GetEnumerator();
             bool hasConflict = _nextConflicts.MoveNext(); // This node isn't a goal node so this is expected to return true -
-                                                                // a conflict should be found
+                                                          // a conflict should be found
             if (hasConflict == false)
             {
                 DebugPrint();
@@ -1024,7 +1023,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         {
             _nextConflicts = GetConflictsNoOrder().GetEnumerator();
             bool hasConflict = _nextConflicts.MoveNext(); // This node isn't a goal node so this is expected to return true -
-                                                                // a conflict should be found
+                                                          // a conflict should be found
             if (hasConflict == false)
             {
                 DebugPrint();
@@ -1038,7 +1037,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         {
             _nextConflicts = GetConflictsCardinalFirstUsingMddMergeFirstByNewPolicy().GetEnumerator();
             bool hasConflict = _nextConflicts.MoveNext(); // This node isn't a goal node so this is expected to return true -
-                                                              // a conflict should be found
+                                                          // a conflict should be found
             if (hasConflict == false)
             {
                 DebugPrint();
@@ -1228,10 +1227,10 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         Queue<(int agentAIndex, int agentBIndex, int conflictTime)> PossiblyCardinalBothCannotBuildMdd = new(TotalConflictsBetweenInternalAgents);
         Queue<(int agentAIndex, int agentBIndex, int conflictTime)> PossiblyCardinalFirstCanBuildMdd = new(TotalConflictsBetweenInternalAgents); // Going over these just get the first element, build its MDD and 
         Queue<int> AgentIndexesWaitingToCheckTheirConflictsForCardinality = new(Enumerable.Range(0, SingleAgentPlans.Length)); // Initially go over all conflicting agents.
-                                                                                                                                        // TODO: this will also go over non-conflicting agents harmlessly. Is there an easy way to get a list of agents that have conflicts?
-        // Positively cardinal conflicts are just yielded immediately
-        // Conflicting agents are only entered into a queue once. Only if the conflicting agent with the larger index
-        // can have an MDD built and the one with the lower can't, a pair of conflicting agents is entered in reverse.
+                                                                                                                               // TODO: this will also go over non-conflicting agents harmlessly. Is there an easy way to get a list of agents that have conflicts?
+                                                                                                                               // Positively cardinal conflicts are just yielded immediately
+                                                                                                                               // Conflicting agents are only entered into a queue once. Only if the conflicting agent with the larger index
+                                                                                                                               // can have an MDD built and the one with the lower can't, a pair of conflicting agents is entered in reverse.
 
         bool allowAgentOrderFlip = true; // Needed when rechecking agents to signal that we shouldn't 
                                          // rely on the other end to check a conflict
@@ -1327,10 +1326,10 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
                                         cardinal.willCostIncreaseForAgentB = CbsConflict.WillCostIncrease.YES;
                                         H = Math.Max(H, 1);  // The children's cost will be at least 1 more than this node's cost
                                         nextConflictCouldBeCardinal = false;  // We don't want CBS to cycle conflicts after this one.
-                                                                                   // This could happen if the conflict is resolved via a merge
-                                                                                   // and the conflicting agents already have some constraints
-                                                                                   // to avoid each other that have already increased the cost
-                                                                                   // of their paths
+                                                                              // This could happen if the conflict is resolved via a merge
+                                                                              // and the conflicting agents already have some constraints
+                                                                              // to avoid each other that have already increased the cost
+                                                                              // of their paths
                                         yield return cardinal;
                                         continue;
                                     }
@@ -1345,7 +1344,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
                                 continue;
                             }
                             else // No MDD and can't build one and other can't build one either (already checked for the latter case above)
-                                    // When re-checking an agent's conflicts we'll never get here because we only recheck agents that can build an MDD
+                                 // When re-checking an agent's conflicts we'll never get here because we only recheck agents that can build an MDD
                             {
                                 PossiblyCardinalBothCannotBuildMdd.Enqueue((i, conflictingAgentIndex, conflictTime));
                                 continue;
@@ -1356,7 +1355,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             }
 
             allowAgentOrderFlip = false;  // We've flipped all we needed above
-                
+
             // 2.
             if (PossiblyCardinalFirstHasMddSecondDoesNotButCan.Count != 0)
             {
@@ -1412,7 +1411,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
                 AgentIndexesWaitingToCheckTheirConflictsForCardinality.Enqueue(agentToBuildAnMddFor);
                 continue;
             }
-                
+
             break; // No more queues to loot
         }
 
@@ -1592,7 +1591,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
                                 {
                                     if (shouldMergeThisPair)
                                         NonCardinalShouldMerge.Enqueue((i, conflictingAgentIndex, conflictTime));  // No semi-cardinal conflicts possible
-                                                                                                                          // for nodes with a single child
+                                                                                                                   // for nodes with a single child
                                     else
                                         NotCardinalMaybeSemi.Enqueue((i, conflictingAgentIndex, conflictTime));
                                     continue;
@@ -1968,7 +1967,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
                                 out specificConflictingAgentA, out specificConflictingAgentB,
                                 groups);
         ProblemInstance problem = CBS.GetProblemInstance();
-        int initialTimeStep = problem.Agents[0].lastMove.Time; // To account for solving partially solved problems.
+        int initialTimeStep = problem.Agents[0].LastMove.Time; // To account for solving partially solved problems.
         // This assumes the makespan of all the agents is the same.
         Move first = SingleAgentPlans[specificConflictingAgentA].GetLocationAt(time);
         Move second = SingleAgentPlans[specificConflictingAgentB].GetLocationAt(time);
@@ -2152,7 +2151,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             int depth = SingleAgentCosts.Max();
 
             IEnumerable<CbsConstraint> myConstraints = constraints.Where(
-                constraint => constraint.agentNum == problem.Agents[agentIndex].agent.agentNum);
+                constraint => constraint.agentNum == problem.Agents[agentIndex].Agent.agentNum);
             if (myConstraints.Count() != 0)
             {
                 int maxConstraintTimeStep = myConstraints.Max(constraint => constraint.time);
@@ -2161,7 +2160,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             if (positiveConstraints != null && positiveConstraints.Count != 0)
             {
                 IEnumerable<CbsConstraint> myMustConstraints = positiveConstraints.Where(
-                    constraint => constraint.agentNum == problem.Agents[agentIndex].agent.agentNum);
+                    constraint => constraint.agentNum == problem.Agents[agentIndex].Agent.agentNum);
                 if (myMustConstraints.Count() != 0)
                 {
                     int maxMustConstraintTimeStep = myMustConstraints.Max(constraint => constraint.time);
@@ -2172,7 +2171,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             Debug.WriteLine($"Building MDD for agent index {agentIndex} of cost {SingleAgentCosts[agentIndex]} and depth {depth}");
 
             double startTime = CBS._stopwatch.ElapsedMilliseconds;
-            _mdds[agentIndex] = new MDD(agentIndex, problem.Agents[agentIndex].agent.agentNum,
+            _mdds[agentIndex] = new MDD(agentIndex, problem.Agents[agentIndex].Agent.agentNum,
                                             problem.Agents[agentIndex].GetMove(), SingleAgentCosts[agentIndex],
                                             depth, problem.GetNumOfAgents(), problem,
                                             ignoreConstraints: false, supportPruning: false,
@@ -2266,7 +2265,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
 
         ProblemInstance problem = CBS.GetProblemInstance();
         time = ConflictTimesPerAgent[chosenAgentIndex] // Yes, the index of the first and the num of the second
-                                                [problem.Agents[chosenConflictingAgentIndex].agent.agentNum][0];
+                                                [problem.Agents[chosenConflictingAgentIndex].Agent.agentNum][0];
         return (groupRepA, groupRepB, time);
     }
 
@@ -2309,10 +2308,10 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         // didn't change and we added no constraints.
 
         ChooseConflict();  // child probably hasn't chosen a conflict (and will never get a chance to),
-                                // need to choose the new conflict to work on.
-                                // (if child somehow had a conflict already, ChooseConflict does nothing)
-                                // We can't just continue the node's conflict iteration since
-                                // some conflicts may have been eliminated by the new plans
+                           // need to choose the new conflict to work on.
+                           // (if child somehow had a conflict already, ChooseConflict does nothing)
+                           // We can't just continue the node's conflict iteration since
+                           // some conflicts may have been eliminated by the new plans
     }
 
     /// <summary>
@@ -2347,7 +2346,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
     /// </summary>
     /// <param name="obj"></param>
     /// <returns></returns>
-    public override bool Equals(object obj) 
+    public override bool Equals(object obj)
     {
         if (obj == null)
             return false;
@@ -2384,18 +2383,6 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         AgentNumToIndex = null;
     }
 
-    public int CompareTo(IBinaryHeapItem item)
-    {
-        CbsNode other = (CbsNode)item;
-
-        if (F < other.F)
-            return -1;
-        if (F > other.F)
-            return 1;
-
-        return TieBreak(other);
-    }
-
     public int TieBreak(CbsNode other, bool ignorePartialExpansion = false, bool ignoreDepth = false)
     {
         // Tie breaking:
@@ -2412,7 +2399,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             return -1;
         if (TotalConflictsWithExternalAgents > other.TotalConflictsWithExternalAgents)
             return 1;
-            
+
         // Prefer goal nodes. The elaborate form is to keep the comparison consistent. Without it goalA<goalB and also goalB<goalA.
         if (GoalTest() == true && other.GoalTest() == false)
             return -1;
@@ -2503,14 +2490,14 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         {
             if (current._constraint != null && // Last check not enough if "surprise merges" happen (merges taken from adopted child)
                 current.Prev.Conflict != null && // Can only happen for temporary lookahead nodes that were created and then
-                                                    // later the parent adopted a goal node
+                                                 // later the parent adopted a goal node
                 AgentsGroupAssignment[current.Prev.Conflict.agentAIndex] !=
                 AgentsGroupAssignment[current.Prev.Conflict.agentBIndex]) // Ignore constraints that deal with conflicts between
-                                                                                // agents that were later merged. They're irrelevant
-                                                                                // since merging fixes all conflicts between merged agents.
-                                                                                // Nodes that only differ in such irrelevant conflicts will have the same single agent paths.
-                                                                                // Dereferencing current.prev is safe because current isn't the root.
-                                                                                // Also, merging creates a non-root node with a null constraint, and this helps avoid adding the null to the answer.
+                                                                          // agents that were later merged. They're irrelevant
+                                                                          // since merging fixes all conflicts between merged agents.
+                                                                          // Nodes that only differ in such irrelevant conflicts will have the same single agent paths.
+                                                                          // Dereferencing current.prev is safe because current isn't the root.
+                                                                          // Also, merging creates a non-root node with a null constraint, and this helps avoid adding the null to the answer.
                 constraints.Add(current._constraint);
             current = current.Prev;
         }
@@ -2555,18 +2542,6 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         return constraints;
     }
 
-    /// <summary>
-    /// IBinaryHeapItem implementation
-    /// </summary>
-    /// <returns></returns>
-    public int GetIndexInHeap()  => _binaryHeapIndex;
-
-    /// <summary>
-    /// IBinaryHeapItem implementation
-    /// </summary>
-    /// <returns></returns>
-    public void SetIndexInHeap(int index)  => _binaryHeapIndex = index;
-
     public Plan CalculateJointPlan() => new Plan(SingleAgentPlans);
 
     /// <summary>
@@ -2574,7 +2549,6 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
     /// The merge criterion is the old one - counts how many times a conflict between the agents was chosen
     /// as the conflict to resolve along the branch to this node.
     /// </summary>
-    /// <param name="mergeThreshold"></param>
     /// <returns>Whether to merge.</returns>
     public bool ShouldMerge(int mergeThreshold)
     {
@@ -2599,10 +2573,6 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
     /// <summary>
     /// New merge criterion: counts how many times the agents conflicted in a new plan.
     /// </summary>
-    /// <param name="mergeThreshold"></param>
-    /// <param name="agentAIndex"></param>
-    /// <param name="agentBIndex"></param>
-    /// <returns></returns>
     public bool ShouldMerge(int mergeThreshold, int agentAIndex, int agentBIndex)
     {
         int conflictsCount = 0;
@@ -2643,8 +2613,6 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
     /// The merge criterion is the old one - count how many times a conflict between the agents was chosen
     /// as the conflict to resolve in the nodes of the tree.
     /// </summary>
-    /// <param name="mergeThreshold"></param>
-    /// <param name="globalConflictCounter"></param>
     /// <returns>Whether to merge.</returns>
     public bool ShouldMerge(int mergeThreshold, int[][] globalConflictCounter)
     {
@@ -2663,13 +2631,6 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         return conflictCounter > mergeThreshold;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="mergeThreshold"></param>
-    /// <param name="agentAIndex"></param>
-    /// <param name="agentBIndex"></param>
-    /// <returns></returns>
     public bool ShouldMerge(int mergeThreshold, int[][] globalConflictCounter, int agentAIndex, int agentBIndex)
     {
         int conflictsCount = 0;
@@ -2700,8 +2661,6 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
     /// <summary>
     /// Returns a list of indices of agents in the group
     /// </summary>
-    /// <param name="agentIndex"></param>
-    /// <returns></returns>
     public ISet<int> GetGroup(int agentIndex)
     {
         int groupNumber = AgentsGroupAssignment[agentIndex];
@@ -2718,8 +2677,6 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
     /// <summary>
     /// Get the combined cost for the group, either for the sum-of-costs or makespan variant.
     /// </summary>
-    /// <param name="groupNumber"></param>
-    /// <returns></returns>
     public int GetGroupCost(int groupNumber)
     {
         if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
@@ -2751,8 +2708,6 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
     /// <summary>
     /// A bit cheaper than GetGroup(n).Count. Still O(n).
     /// </summary>
-    /// <param name="agentIndex"></param>
-    /// <returns></returns>
     public int GetGroupSize(int agentIndex)
     {
         int groupNumber = AgentsGroupAssignment[agentIndex];
@@ -2769,7 +2724,6 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
     /// <summary>
     /// In O(n)
     /// </summary>
-    /// <returns></returns>
     public int[] GetGroupSizes()
     {
         Span<int> counts = stackalloc int[AgentsGroupAssignment.Length];
@@ -2781,14 +2735,13 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
 
         for (int i = 0; i < AgentsGroupAssignment.Length; i++)
             groupSizes[i] = counts[AgentsGroupAssignment[i]];
-            
+
         return groupSizes;
     }
 
     /// <summary>
     /// In O(n)
     /// </summary>
-    /// <returns></returns>
     public ISet<int>[] GetGroups()
     {
         Dictionary<int, ISet<int>> repsToGroups = [];
@@ -2826,8 +2779,8 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             (a, b) = (b, a);
 
         ProblemInstance problem = CBS.GetProblemInstance();
-        int aAgentNum = problem.Agents[a].agent.agentNum;
-        int bAgentNum = problem.Agents[b].agent.agentNum;
+        int aAgentNum = problem.Agents[a].Agent.agentNum;
+        int bAgentNum = problem.Agents[b].Agent.agentNum;
 
         for (int i = 0; i < AgentsGroupAssignment.Length; i++)
         {
@@ -2878,8 +2831,6 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
     /// <summary>
     /// NOT the cost, just the length - 1.
     /// </summary>
-    /// <param name="agent"></param>
-    /// <returns></returns>
     public int PathLength(int agent)
     {
         List<Move> moves = SingleAgentPlans[agent].LocationAtTimes;
@@ -2887,7 +2838,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         for (int i = moves.Count - 2; i >= 0; i--)
         {
             if (moves[i].Equals(goal) == false) // Note the move that gets to the goal is different to the move that first waits in it.
-                return  i + 1;
+                return i + 1;
         }
         return 0;
     }
@@ -2904,14 +2855,12 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         return true;
     }
 
-    public void SetMustConstraint(CbsConstraint set)
-    {
-        _mustConstraint = set;
-    }
+    public void SetMustConstraint(CbsConstraint set) => _mustConstraint = set;
 
     private bool isGoal = false;
 
-    public bool GoalTest() {
+    public bool GoalTest()
+    {
         if (G < CBS.MinSolutionCost)
             return false;
         return isGoal;
@@ -3016,7 +2965,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             if (AgentsGroupAssignment[i] == groupNum)
             {
                 SingleAgentPlans[i] = singlePlans[j];
-                SingleAgentPlans[i].AgentNum = problem.Agents[groupNum].agent.agentNum; // Use the group's representative
+                SingleAgentPlans[i].AgentNum = problem.Agents[groupNum].Agent.agentNum; // Use the group's representative
                 SingleAgentCosts[i] = singleCosts[j];
                 j++;
             }
@@ -3072,64 +3021,17 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
                 return false;
         }
     }
-}
 
-/// <summary>
-/// Because the default tuple comparison compares the first element only :(.
-/// </summary>
-public class AgentToCheckForCardinalConflicts : IBinaryHeapItem
-{
-    private readonly int _groupSize;
-    private readonly int _degree;
-    private readonly int _planCost;
-    private readonly int _index;
-
-    public AgentToCheckForCardinalConflicts(int groupSize, int degree, int planCost, int index)
+    public class Comparer : IComparer<CbsNode>
     {
-        _groupSize = groupSize;
-        _degree = degree;
-        _planCost = planCost;
-        _index = index;
+        public int Compare(CbsNode x, CbsNode y)
+        {
+            if (x.F < y.F)
+                return -1;
+            if (x.F > y.F)
+                return 1;
+
+            return x.TieBreak(y);
+        }
     }
-
-    public int CompareTo(IBinaryHeapItem item)
-    {
-        AgentToCheckForCardinalConflicts other = (AgentToCheckForCardinalConflicts)item;
-
-        if (_groupSize < other._groupSize)
-            return -1;
-        else if (_groupSize > other._groupSize)
-            return 1;
-
-        if (_degree < other._degree)
-            return -1;
-        else if (_degree > other._degree)
-            return 1;
-
-        if (_planCost < other._planCost)
-            return -1;
-        else if (_planCost > other._planCost)
-            return 1;
-
-        if (_index < other._index)
-            return -1;
-        else if (_index > other._index)
-            return 1;
-        else
-            return 0;
-    }
-
-    int binaryHeapIndex;
-
-    /// <summary>
-    /// IBinaryHeapItem implementation
-    /// </summary>
-    /// <returns></returns>
-    public int GetIndexInHeap() { return binaryHeapIndex; }
-
-    /// <summary>
-    /// IBinaryHeapItem implementation
-    /// </summary>
-    /// <returns></returns>
-    public void SetIndexInHeap(int index) { binaryHeapIndex = index; }
 }
