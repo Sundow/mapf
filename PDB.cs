@@ -100,7 +100,7 @@ class PDB : IHeuristicCalculator<WorldState>
         }
 
         // Try all legal moves of the agent
-        foreach (TimedMove agentLocation in currentNode.AllAgentsState[agentIndex].lastMove.GetNextMoves())
+        foreach (TimedMove agentLocation in currentNode.AllAgentsState[agentIndex].LastMove.GetNextMoves())
         {
             if (IsValid(agentLocation, agentIndex, previousMoves))
             {

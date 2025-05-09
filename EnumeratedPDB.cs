@@ -297,11 +297,11 @@ class EnumeratedPDB : PDB
             // us to keep figure out how many other agents have been placed
             // in positions previous to our current position.
 
-            int card1 = problem.GetCardinality(s.AllAgentsState[agentsToConsider[i]].lastMove);
+            int card1 = problem.GetCardinality(s.AllAgentsState[agentsToConsider[i]].LastMove);
             int preceding = 0;
             for (int j = 0; j < i; ++j)
             {
-                int nCard2 = problem.GetCardinality(s.AllAgentsState[agentsToConsider[j]].lastMove);
+                int nCard2 = problem.GetCardinality(s.AllAgentsState[agentsToConsider[j]].LastMove);
                 if (nCard2 < card1)
                     ++preceding;
             }

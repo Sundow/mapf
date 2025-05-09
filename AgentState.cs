@@ -3,28 +3,25 @@ using System.Collections.Generic;
 
 namespace mapf;
 
-[Serializable] public class AgentState : IComparable<IBinaryHeapItem>, IBinaryHeapItem
+public class AgentState
 {
     /// <summary>
     /// Only used when AgentState objects are put in the open list priority queue - mainly in AStarForSingleAgent, I think.
     /// </summary>
-    public int h;
-    public Agent agent;
+    public int H { get; set; }
+    public Agent Agent { get; private set; }
     /// <summary>
     /// At goal
     /// </summary>
-    public int arrivalTime;
+    public int ArrivalTime { get; private set; }
     /// <summary>
     /// The last move's time is the agent's G
     /// </summary>
-    public TimedMove lastMove;
-    private int binaryHeapIndex;
-    public int potentialConflicts;
-    public ushort potentialConflictsID;
+    public TimedMove LastMove { get; private set; }
     /// <summary>
     /// Only used by AStarForSingleAgent, which should itself be deleted.
     /// </summary>
-    [NonSerialized] public AgentState prev;
+    public AgentState Prev { get; set; }
     /// <summary>
     /// For CBS this must be set to false.
     /// </summary>
@@ -32,8 +29,8 @@ namespace mapf;
 
     public AgentState(int pos_X, int pos_Y, Agent agent)
     {
-        this.lastMove = new TimedMove(pos_X, pos_Y, Direction.NO_DIRECTION, 0);
-        this.agent = agent;
+        LastMove = new TimedMove(pos_X, pos_Y, Direction.NO_DIRECTION, 0);
+        Agent = agent;
     }
 
     public AgentState(int startX, int startY, int goalX, int goalY, int agentId)
@@ -42,12 +39,12 @@ namespace mapf;
 
     public AgentState(AgentState copy)
     {
-        this.agent = copy.agent;
-        this.h = copy.h;
-        this.arrivalTime = copy.arrivalTime;
-        this.lastMove = copy.lastMove; //new TimedMove(copy.lastMove); // Can we just do this.lastMove = copy.lastMove? I think we can now, since MoveTo replaces the move
-        //this.prev = copy;
-        this.g = copy.g;
+        Agent = copy.Agent;
+        H = copy.H;
+        ArrivalTime = copy.ArrivalTime;
+        LastMove = copy.LastMove; //new TimedMove(copy.lastMove); // Can we just do lastMove = copy.lastMove? I think we can now, since MoveTo replaces the move
+        //prev = copy;
+        G = copy.G;
     }
 
     /// <summary>
@@ -55,12 +52,12 @@ namespace mapf;
     /// </summary>
     public void SwapCurrentWithGoal()
     {
-        int nTemp = lastMove.X;
-        lastMove.X = agent.Goal.X;
-        agent.Goal.X = nTemp;
-        nTemp = lastMove.Y;
-        lastMove.Y = agent.Goal.Y;
-        agent.Goal.Y = nTemp;
+        int nTemp = LastMove.X;
+        LastMove.X = Agent.Goal.X;
+        Agent.Goal.X = nTemp;
+        nTemp = LastMove.Y;
+        LastMove.Y = Agent.Goal.Y;
+        Agent.Goal.Y = nTemp;
     }
 
     /// <summary>
@@ -68,26 +65,26 @@ namespace mapf;
     /// </summary>
     public void MoveTo(TimedMove move)
     {
-        this.lastMove = move;
+        LastMove = move;
 
         bool isWait = move.Direction == Direction.Wait;
-        bool atGoal = this.AtGoal();
+        bool atGoal = AtGoal();
 
         // If performed a non WAIT move and reached the agent's goal - store the arrival time
         if (atGoal && (isWait == false))
-            this.arrivalTime = move.Time;
+            ArrivalTime = move.Time;
 
         if (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.ORIG)
         {
-            if (this.AtGoal())
-                this.g = this.arrivalTime;
+            if (AtGoal())
+                G = ArrivalTime;
             else
-                this.g = this.lastMove.Time;
+                G = LastMove.Time;
         }
         else if (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.WAITING_AT_GOAL_ALWAYS_FREE)
         {
             if ((atGoal && isWait) == false)
-                this.g += 1;
+                G += 1;
         }
     }
 
@@ -95,26 +92,13 @@ namespace mapf;
     /// Checks if the agent is at its goal location
     /// </summary>
     /// <returns>True if the agent has reached its goal location</returns>
-    public bool AtGoal()
-    {
-        return this.agent.Goal.Equals(this.lastMove); // Comparing Move to TimedMove is allowed, the reverse isn't.
-    }
+    public bool AtGoal() => Agent.Goal.Equals(LastMove); // Comparing Move to TimedMove is allowed, the reverse isn't.
 
-    public int g;
-
-    /// <summary>
-    /// BH_Item implementation
-    /// </summary>
-    public int GetIndexInHeap() { return binaryHeapIndex; }
-
-    /// <summary>
-    /// BH_Item implementation
-    /// </summary>
-    public void SetIndexInHeap(int index) { binaryHeapIndex = index; }
+    public int G { get; private set; }
 
     /// <summary>
     /// When equivalence over different times is necessary,
-    /// checks this.agent and last position only,
+    /// checks agent and last position only,
     /// ignoring data that would make this state different to other equivalent states:
     /// It doesn't matter from which direction the agent got to its current location.
     /// It's also necessary to ignore the agents' move time - we want the same positions
@@ -130,22 +114,22 @@ namespace mapf;
 
         if (AgentState.EquivalenceOverDifferentTimes)
         {
-            return this.agent.Equals(that.agent) &&
-                    this.lastMove.X == that.lastMove.X && 
-                    this.lastMove.Y == that.lastMove.Y; // Ignoring the time and the direction
+            return Agent.Equals(that.Agent) &&
+                    LastMove.X == that.LastMove.X && 
+                    LastMove.Y == that.LastMove.Y; // Ignoring the time and the direction
         }
         else
         {
-            return this.agent.Equals(that.agent) &&
-                    this.lastMove.X == that.lastMove.X &&
-                    this.lastMove.Y == that.lastMove.Y &&
-                    this.lastMove.Time == that.lastMove.Time; // Ignoring the direction
+            return Agent.Equals(that.Agent) &&
+                    LastMove.X == that.LastMove.X &&
+                    LastMove.Y == that.LastMove.Y &&
+                    LastMove.Time == that.LastMove.Time; // Ignoring the direction
         }
     }
 
     /// <summary>
     /// When equivalence over different times is necessary,
-    /// uses this.agent and last position only, ignoring direction and time.
+    /// uses agent and last position only, ignoring direction and time.
     /// </summary>
     /// <returns></returns>
     public override int GetHashCode()
@@ -153,52 +137,33 @@ namespace mapf;
         unchecked
         {
             if (AgentState.EquivalenceOverDifferentTimes)
-                return 3 * this.agent.GetHashCode() + 5 * this.lastMove.X + 7 * this.lastMove.Y;
+                return 3 * Agent.GetHashCode() + 5 * LastMove.X + 7 * LastMove.Y;
             else
-                return 3 * this.agent.GetHashCode() + 5 * this.lastMove.GetHashCode();
+                return 3 * Agent.GetHashCode() + 5 * LastMove.GetHashCode();
         }
     }
 
-    public Move GetMove()
+    public Move GetMove() => LastMove;
+
+    public override string ToString() => $"step-{LastMove.Time} position {LastMove}";
+
+    public class Comparer : IComparer<AgentState>
     {
-        return this.lastMove;
-    }
+        public int Compare(AgentState x, AgentState y)
+        {
+            if (x.H + x.LastMove.Time < y.H + y.LastMove.Time)
+                return -1;
+            if (x.H + x.LastMove.Time > y.H + y.LastMove.Time)
+                return 1;
 
-    /// <summary>
-    /// Used when AgentState objects are put in the open list priority queue - mainly in AStarForSingleAgent, I think.
-    /// </summary>
-    /// <param name="other"></param>
-    /// <returns></returns>
-    public int CompareTo(IBinaryHeapItem other)
-    {
-        AgentState that = (AgentState)other;
-        if (this.h + this.lastMove.Time < that.h + that.lastMove.Time)
-            return -1;
-        if (this.h + this.lastMove.Time > that.h + that.lastMove.Time)
-            return 1;
+            // TODO: Prefer goal nodes.
 
-        if (this.potentialConflictsID < that.potentialConflictsID)
-            return -1;
-        if (this.potentialConflictsID > that.potentialConflictsID)
-            return 1;
-
-        if (this.potentialConflicts < that.potentialConflicts) // Doesn't this come before the potentialConflictsID in other places?
-            return -1;
-        if (this.potentialConflicts > that.potentialConflicts)
-            return 1;
-
-        // TODO: Prefer goal nodes.
-
-        // Prefer larger g:
-        if (this.lastMove.Time < that.lastMove.Time)
-            return 1;
-        if (this.lastMove.Time > that.lastMove.Time)
-            return -1;
-        return 0;
-    }
-
-    public override string ToString()
-    {
-        return $"step-{lastMove.Time} position {this.lastMove}";
+            // Prefer larger g:
+            if (x.LastMove.Time < y.LastMove.Time)
+                return 1;
+            if (x.LastMove.Time > y.LastMove.Time)
+                return -1;
+            return 0;
+        }
     }
 }

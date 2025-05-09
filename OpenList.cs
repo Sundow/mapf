@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.IO;
 
 namespace mapf;
@@ -12,83 +11,89 @@ namespace mapf;
 ///       even though it might not respect all tie-breaking (but still prioritizes goal nodes).
 /// </summary>
 [DebuggerDisplay("Count = {Count}")]
-public class OpenList<Item> : IAccumulatingStatisticsCsvWriter where Item : IBinaryHeapItem
+public class OpenList<Item> : IAccumulatingStatisticsCsvWriter
 {
-    protected Queue<Item> queue;
-    protected BinaryHeap<Item> heap;
-        
-    protected ISolver user;  // For updating its stats
-    protected int quickInsertionCount;
-    protected int accQuickInsertionCount;
+    private Queue<Item> _queue;
+    protected SortedSet<Item> _sortedSet;
 
-    protected int quickInsertionsCancelled;
-    protected int accQuickInsertionsCancelled;
+    protected ISolver _user;  // For updating its stats
+    private int _quickInsertionCount;
+    private int _accQuickInsertionCount;
 
-    public OpenList(ISolver user)
+    private int _quickInsertionsCancelled;
+    private int _accQuickInsertionsCancelled;
+
+    private readonly IComparer<Item> _comparer;
+
+    public OpenList(ISolver user, IComparer<Item> comparer)
     {
-        this.heap = new BinaryHeap<Item>();
-        this.queue = new Queue<Item>();
+        _sortedSet = new SortedSet<Item>(comparer);
+        _comparer = comparer; // need to compare outside of the _sortedSet too.
+        _queue = new Queue<Item>();
 
-        this.user = user;
-        this.ClearPrivateStatistics();
-        this.ClearPrivateAccumulatedStatistics();
+        _user = user;
+        ClearPrivateStatistics();
+        ClearPrivateAccumulatedStatistics();
     }
 
-    public int Count
-    {
-        get { return this.heap.Count + this.queue.Count; }
-    }
+    public int Count => _sortedSet.Count + _queue.Count;
 
     public Item Peek()
     {
-        if (this.queue.Count != 0)
-            return this.queue.Peek();
-        return this.heap.Peek();
+        if (_queue.Count != 0)
+            return _queue.Peek();
+        return _sortedSet.Min;
     }
 
     public void Clear()
     {
-        this.queue.Clear();
-        this.heap.Clear();
+        _queue.Clear();
+        _sortedSet.Clear();
     }
 
     public void Add(Item item)
     {
-        if (this.queue.Count == 0)
+        if (_queue.Count == 0)
         {
-            if (this.heap.Count == 0)
-                this.heap.Add(item); // It's very cheap.
+            if (_sortedSet.Count == 0)
+            {
+                _sortedSet.Add(item);
+            }
             else
             {
-                int compareRes = item.CompareTo(this.heap.Peek());
+                int compareRes = _comparer.Compare(item, _sortedSet.Min);
                 if (compareRes != -1) // Even if equal, respect the stable order, don't "cut the line".
-                    this.heap.Add(item);
+                {
+                    _sortedSet.Add(item);
+                }
                 else
                 {
-                    this.queue.Enqueue(item);
-                    this.quickInsertionCount++;
+                    _queue.Enqueue(item);
+                    _quickInsertionCount++;
                 }
             }
         }
         else
         {
-            int compareRes = item.CompareTo(this.queue.Peek());
+            int compareRes = _comparer.Compare( item, _queue.Peek());
             if (compareRes == 1) // item is larger than the queue
-                this.heap.Add(item);
+            {
+                _sortedSet.Add(item);
+            }
             else // 
             {
                 if (compareRes == -1) // Item is smaller than the queue
                 {
-                    while (this.queue.Count != 0)
+                    while (_queue.Count != 0)
                     {
-                        Item fromQueue = this.queue.Dequeue();
-                        this.heap.Add(fromQueue);
-                        this.quickInsertionCount--;
-                        this.quickInsertionsCancelled++;
+                        Item fromQueue = _queue.Dequeue();
+                        _sortedSet.Add(fromQueue);
+                        _quickInsertionCount--;
+                        _quickInsertionsCancelled++;
                     }
                 }
-                this.queue.Enqueue(item);
-                this.quickInsertionCount++;
+                _queue.Enqueue(item);
+                _quickInsertionCount++;
             }
         }
 
@@ -107,15 +112,15 @@ public class OpenList<Item> : IAccumulatingStatisticsCsvWriter where Item : IBin
     public virtual Item Remove()
     {
         Item item;
-        if (this.queue.Count != 0)
+        if (_queue.Count != 0)
         {
-            item = this.queue.Dequeue();
-            item.SetIndexInHeap(BinaryHeap<Item>.REMOVED_FROM_HEAP); // The heap assumes all items not in it have this index,
-                                                                // so we need to set it for when we search for this node
-                                                                // in the open list later.
+            item = _queue.Dequeue();
         }
         else
-            item = this.heap.Remove();
+        {
+            item = _sortedSet.Min;
+            _sortedSet.Remove(item);
+        }
         return item;
     }
 
@@ -123,30 +128,29 @@ public class OpenList<Item> : IAccumulatingStatisticsCsvWriter where Item : IBin
     /// Uses Equality check only for removing from the queue.
     /// Might cost O(n) if all items are in the queue and not the heap.
     /// </summary>
-    /// <param name="item"></param>
-    /// <returns></returns>
     public bool Remove(Item item)
     {
-        if (item.GetIndexInHeap() == BinaryHeap<Item>.REMOVED_FROM_HEAP) // Or from queue.
-            return false;
-
         bool removedFromQueue = false;
         // Remove from the queue if it's there, keeping the order in the queue.
-        for (int i = 0; i < this.queue.Count; ++i )
+        for (int i = 0; i < _queue.Count; ++i )
         {
-            Item temp = this.queue.Dequeue();
+            Item temp = _queue.Dequeue();
             if (temp.Equals(item))
             {
                 removedFromQueue = true;
-                temp.SetIndexInHeap(BinaryHeap<Item>.REMOVED_FROM_HEAP);
             }
             else
-                this.queue.Enqueue(temp);
+                _queue.Enqueue(temp);
         }
         if (removedFromQueue == true)
             return true;
 
-        return this.heap.Remove(item);
+        if(_sortedSet.Contains(item))
+        {
+            _sortedSet.Remove(item);
+            return true;
+        }
+        return false;
     }
 
     /// <summary>
@@ -154,80 +158,59 @@ public class OpenList<Item> : IAccumulatingStatisticsCsvWriter where Item : IBin
     /// </summary>
     /// <param name="item"></param>
     /// <returns></returns>
-    public bool Contains(Item item)
-    {
-        return item.GetIndexInHeap() != BinaryHeap<Item>.REMOVED_FROM_HEAP;
-    }
+    public bool Contains(Item item) => _sortedSet.Contains(item);
 
     public virtual void OutputStatisticsHeader(TextWriter output)
     {
-        output.Write(this.user.ToString() + " Quick Insertions");
+        output.Write(_user.ToString() + " Quick Insertions");
         output.Write(Run.RESULTS_DELIMITER);
-        output.Write(this.user.ToString() + " Quick Insertions Cancelled");
+        output.Write(_user.ToString() + " Quick Insertions Cancelled");
         output.Write(Run.RESULTS_DELIMITER);
     }
 
     public virtual void OutputStatistics(TextWriter output)
     {
-        Console.WriteLine(this.user.ToString() + " Quick insertions: {0}", this.quickInsertionCount);
-        Console.WriteLine(this.user.ToString() + " Quick insertions cancelled: {0}", this.quickInsertionsCancelled);
+        Console.WriteLine(_user.ToString() + " Quick insertions: {0}", _quickInsertionCount);
+        Console.WriteLine(_user.ToString() + " Quick insertions cancelled: {0}", _quickInsertionsCancelled);
 
-        output.Write(this.quickInsertionCount + Run.RESULTS_DELIMITER);
-        output.Write(this.quickInsertionsCancelled + Run.RESULTS_DELIMITER);
+        output.Write(_quickInsertionCount + Run.RESULTS_DELIMITER);
+        output.Write(_quickInsertionsCancelled + Run.RESULTS_DELIMITER);
     }
 
-    public virtual int NumStatsColumns
-    {
-        get
-        {
-            return 2;
-        }
-    }
+    public virtual int NumStatsColumns => 2;
 
     protected void ClearPrivateStatistics()
     {
-        this.quickInsertionCount = 0;
-        this.quickInsertionsCancelled = 0;
+        _quickInsertionCount = 0;
+        _quickInsertionsCancelled = 0;
     }
 
     protected void ClearPrivateAccumulatedStatistics()
     {
-        this.accQuickInsertionCount = 0;
-        this.accQuickInsertionsCancelled = 0;
+        _accQuickInsertionCount = 0;
+        _accQuickInsertionsCancelled = 0;
     }
 
-    public virtual void ClearStatistics()
-    {
-        this.ClearPrivateStatistics();
-    }
+    public virtual void ClearStatistics() => ClearPrivateStatistics();
 
-    public virtual void ClearAccumulatedStatistics()
-    {
-        this.ClearPrivateAccumulatedStatistics();
-    }
+    public virtual void ClearAccumulatedStatistics() => ClearPrivateAccumulatedStatistics();
 
     public virtual void AccumulateStatistics()
     {
-        this.accQuickInsertionCount += this.quickInsertionCount;
-        this.accQuickInsertionsCancelled += this.quickInsertionsCancelled;
+        _accQuickInsertionCount += _quickInsertionCount;
+        _accQuickInsertionsCancelled += _quickInsertionsCancelled;
     }
 
     public virtual void OutputAccumulatedStatistics(TextWriter output)
     {
-        Console.WriteLine(this.user.ToString() + " Accumulated Quick insertions: {0}", this.accQuickInsertionCount);
-        Console.WriteLine(this.user.ToString() + " Accumulated Quick insertions cancelled: {0}", this.accQuickInsertionsCancelled);
+        Console.WriteLine(_user.ToString() + " Accumulated Quick insertions: {0}", _accQuickInsertionCount);
+        Console.WriteLine(_user.ToString() + " Accumulated Quick insertions cancelled: {0}", _accQuickInsertionsCancelled);
 
-        output.Write(this.accQuickInsertionCount + Run.RESULTS_DELIMITER);
-        output.Write(this.accQuickInsertionsCancelled + Run.RESULTS_DELIMITER);
+        output.Write(_accQuickInsertionCount + Run.RESULTS_DELIMITER);
+        output.Write(_accQuickInsertionsCancelled + Run.RESULTS_DELIMITER);
     }
 
-    public override string ToString()
-    {
-        return this.GetName();
-    }
+    public override string ToString() => GetName();
 
-    public virtual string GetName()
-    {
-        return "OpenList";
-    }
+    public virtual string GetName() => "OpenList";
 }

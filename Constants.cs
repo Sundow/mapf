@@ -3,7 +3,7 @@ namespace mapf;
 
 class Constants
 {
-    public static int MAX_TIME = 60000;
+    public static int MAX_TIME = 600000000;
 
     public enum SpecialCosts : int
     {

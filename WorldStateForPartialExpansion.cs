@@ -124,7 +124,7 @@ class WorldStateForPartialExpansion : WorldState
                 
             int singleAgentMaxLegalDeltaF = -1;
 
-            foreach (TimedMove check in AllAgentsState[i].lastMove.GetNextMoves())
+            foreach (TimedMove check in AllAgentsState[i].LastMove.GetNextMoves())
             {
                 if (isValid(check, noMoves, this.Makespan + 1, i, this, this) == false)  // Is this move by itself invalid because of constraints or obstacles
                 {
@@ -132,14 +132,14 @@ class WorldStateForPartialExpansion : WorldState
                 }
                 else
                 {
-                    hAfter = problem.GetSingleAgentOptimalCost(AllAgentsState[i].agent.agentNum, check);
+                    hAfter = problem.GetSingleAgentOptimalCost(AllAgentsState[i].Agent.agentNum, check);
 
                     if (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.ORIG)
                     {
                         if (hBefore != 0)
                             singleAgentDeltaFs[i][(int)check.Direction] = (byte)(hAfter - hBefore + 1); // h difference + g difference in this specific domain
                         else if (hAfter != 0) // If agent moved from its goal we must count and add all the steps it was stationed at the goal, since they're now part of its g difference
-                            singleAgentDeltaFs[i][(int)check.Direction] = (byte)(hAfter - hBefore + Makespan - AllAgentsState[i].arrivalTime + 1);
+                            singleAgentDeltaFs[i][(int)check.Direction] = (byte)(hAfter - hBefore + Makespan - AllAgentsState[i].ArrivalTime + 1);
                         else
                             singleAgentDeltaFs[i][(int)check.Direction] = 0; // This is a WAIT move at the goal.
                     }
@@ -245,7 +245,7 @@ class WorldStateForPartialExpansion : WorldState
             Trace.Assert(false,
                             $"Remaining deltaF is ushort.MaxValue, a reserved value with special meaning. agentIndex={agentIndex}");
 
-        byte lastMoveDeltaF = this.singleAgentDeltaFs[agentIndex][(int)this.AllAgentsState[agentIndex].lastMove.Direction];
+        byte lastMoveDeltaF = this.singleAgentDeltaFs[agentIndex][(int)this.AllAgentsState[agentIndex].LastMove.Direction];
         if (lastMoveDeltaF != byte.MaxValue && this.remainingDeltaF >= lastMoveDeltaF)
             this.remainingDeltaF -= lastMoveDeltaF;
         else

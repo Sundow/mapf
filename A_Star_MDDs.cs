@@ -11,57 +11,58 @@ namespace mapf;
 /// </summary>
 class A_Star_MDDs : IConflictReporting
 {
-    MDD[] problem;
-    readonly Dictionary<A_Star_MDDs_Node, A_Star_MDDs_Node> closedList = [];
-    readonly Stopwatch stopwatch;
-    readonly BinaryHeap<A_Star_MDDs_Node> openList = new();
-    public int expanded;
-    public int generated;
-    public int conflictCount;
-    readonly ConflictAvoidanceTable CAT;
+    private MDD[] _problem;
+    private readonly Dictionary<A_Star_MDDs_Node, A_Star_MDDs_Node> _closedList = [];
+    private readonly Stopwatch _stopwatch;
+
+    private readonly SortedSet<A_Star_MDDs_Node> _openList = new( new A_Star_MDDs_Node.Comparer() );
+
+    public int Expanded { get; private set; } = 0;
+    public int Generated { get; private set; } = 0;
+    public int ConflictCount { get; private set; } = 0;
+    private readonly ConflictAvoidanceTable _cat;
 
     public A_Star_MDDs(MDD[] problem, Stopwatch stopwatch, ConflictAvoidanceTable CAT)
     {
-        this.expanded = 0;
-        this.generated = 0;
         A_Star_MDDs_Node root;
-        this.problem = problem;
-        this.stopwatch = stopwatch;
-        this.CAT = CAT;
+        _problem = problem;
+        _stopwatch = stopwatch;
+        _cat = CAT;
         MDDNode[] sRoot = new MDDNode[problem.Length];
         for (int i = 0; i < problem.Length; i++)
         {
             sRoot[i] = problem[i].levels[0].First.Value;
         }
         root = new A_Star_MDDs_Node(sRoot, null);
-        openList.Add(root);
-        closedList.Add(root, root); // There will never be a hit. This is only done for consistancy
-        conflictCount = 0;
+        _openList.Add(root);
+        _closedList.Add(root, root); // There will never be a hit. This is only done for consistancy
     }
        
     public SinglePlan[] Solve()
     {
         A_Star_MDDs_Node currentNode;
-        //A_Star_MDDs_Expander expander = new A_Star_MDDs_Expander();
 
-        while (openList.Count > 0)
+        while (_openList.Count > 0)
         {
-            if (stopwatch.ElapsedMilliseconds > Constants.MAX_TIME)
+            if (_stopwatch.ElapsedMilliseconds > Constants.MAX_TIME)
             {
                 return null;
             }
-            currentNode = openList.Remove();
+
+            currentNode = _openList.Min;
+            _openList.Remove(currentNode);
+
             // Check if node is the goal
-            if (this.GoalTest(currentNode))
+            if (GoalTest(currentNode))
             {
-                this.conflictCount = currentNode.conflictCount;
-                this.conflictCounts = currentNode.conflictCounts;
-                this.conflictTimes = currentNode.conflictTimes;
+                ConflictCount = currentNode.ConflictCount;
+                _conflictCounts = currentNode.ConflictCounts;
+                _conflictTimes = currentNode.ConflictTimes;
                 return GetAnswer(currentNode);
             }
 
             // Expand
-            expanded++;  // TODO: don't count re-expansions as expansions?
+            Expanded++;  // TODO: don't count re-expansions as expansions?
             Expand(currentNode);
             //expander.Setup(currentNode);
             //Expand(expander);  // TODO: the expander just generates all children. EPEA* its ass!!
@@ -73,14 +74,14 @@ class A_Star_MDDs : IConflictReporting
     {
         if (node.IsAlreadyExpanded() == false)
         {
-            node.calcSingleAgentDeltaConflictCounts(this.CAT);
-            node.alreadyExpanded = true;
-            node.targetDeltaConflictCount = 0;
-            node.remainingDeltaConflictCount = node.targetDeltaConflictCount; // Just for the following hasChildrenForCurrentDeltaConflictCount call.
+            node.calcSingleAgentDeltaConflictCounts(_cat);
+            node.AlreadyExpanded = true;
+            node.TargetDeltaConflictCount = 0;
+            node.RemainingDeltaConflictCount = node.TargetDeltaConflictCount; // Just for the following hasChildrenForCurrentDeltaConflictCount call.
             while (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaConflictCount() == false) // DeltaConflictCount==0 may not be possible if all agents have obstacles between their location and the goal
             {
-                node.targetDeltaConflictCount++;
-                node.remainingDeltaConflictCount = node.targetDeltaConflictCount;
+                node.TargetDeltaConflictCount++;
+                node.RemainingDeltaConflictCount = node.TargetDeltaConflictCount;
             }
             if (node.hasMoreChildren() == false) // Node has no possible children at all
             {
@@ -91,9 +92,9 @@ class A_Star_MDDs : IConflictReporting
 
         var intermediateNodes = new List<A_Star_MDDs_Node>() { node };
 
-        for (int mddIndex = 0; mddIndex < this.problem.Length && intermediateNodes.Count != 0; ++mddIndex)
+        for (int mddIndex = 0; mddIndex < _problem.Length && intermediateNodes.Count != 0; ++mddIndex)
         {
-            if (stopwatch.ElapsedMilliseconds > Constants.MAX_TIME)
+            if (_stopwatch.ElapsedMilliseconds > Constants.MAX_TIME)
                 return;
 
             intermediateNodes = ExpandOneAgent(intermediateNodes, mddIndex);
@@ -103,34 +104,34 @@ class A_Star_MDDs : IConflictReporting
 
         foreach (var child in finalGeneratedNodes)
         {
-            child.conflictCount = node.conflictCount + node.targetDeltaConflictCount;
+            child.ConflictCount = node.ConflictCount + node.TargetDeltaConflictCount;
 
             // Accumulating the conflicts count from parent to child
             // We're counting conflicts along the entire path, so the parent's conflicts count is added to the child's:
-            child.conflictCounts = new Dictionary<int, int>(child.prev.conflictCounts);
-            child.conflictTimes = [];
-            foreach (var kvp in child.prev.conflictTimes)
-                child.conflictTimes[kvp.Key] = [.. kvp.Value];
-            child.IncrementConflictCounts(this.CAT);  // We're counting conflicts along the entire path, so the parent's conflicts count
+            child.ConflictCounts = new Dictionary<int, int>(child.Prev.ConflictCounts);
+            child.ConflictTimes = [];
+            foreach (var kvp in child.Prev.ConflictTimes)
+                child.ConflictTimes[kvp.Key] = [.. kvp.Value];
+            child.IncrementConflictCounts(_cat);  // We're counting conflicts along the entire path, so the parent's conflicts count
                                                     // is added to the child's.
 
-            bool was_closed = this.closedList.ContainsKey(child);
+            bool was_closed = _closedList.ContainsKey(child);
             if (was_closed)
             {
-                A_Star_MDDs_Node inClosedList = this.closedList[child];
+                A_Star_MDDs_Node inClosedList = _closedList[child];
 
-                if (inClosedList.conflictCount > child.conflictCount)
+                if (inClosedList.ConflictCount > child.ConflictCount)
                 {
-                    closedList.Remove(inClosedList);
-                    openList.Remove(inClosedList);
+                    _closedList.Remove(inClosedList);
+                    _openList.Remove(inClosedList);
                     was_closed = false;
                 }
             }
             if (!was_closed)
             {
-                this.openList.Add(child);
-                this.closedList.Add(child, child);
-                generated++;
+                _openList.Add(child);
+                _closedList.Add(child, child);
+                Generated++;
             }
         }
 
@@ -142,19 +143,19 @@ class A_Star_MDDs : IConflictReporting
             return;
         }
 
-        node.targetDeltaConflictCount++; // This delta F was exhausted
-        node.remainingDeltaConflictCount = node.targetDeltaConflictCount;
+        node.TargetDeltaConflictCount++; // This delta F was exhausted
+        node.RemainingDeltaConflictCount = node.TargetDeltaConflictCount;
 
         while (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaConflictCount() == false)
         {
-            node.targetDeltaConflictCount++;
-            node.remainingDeltaConflictCount = node.targetDeltaConflictCount; // Just for the following hasChildrenForCurrentDeltaF call.
+            node.TargetDeltaConflictCount++;
+            node.RemainingDeltaConflictCount = node.TargetDeltaConflictCount; // Just for the following hasChildrenForCurrentDeltaF call.
         }
 
         if (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaConflictCount())
         {
             // Re-insert node into open list
-            openList.Add(node);
+            _openList.Add(node);
         }
         else
             node.ClearExpansionData();
@@ -168,30 +169,30 @@ class A_Star_MDDs : IConflictReporting
         foreach (A_Star_MDDs_Node node in intermediateNodes)
         {
             // Try all the children of this MDD node
-            foreach ((int childIndex, MDDNode childMddNode) in node.allSteps[mddIndex].children.Enumerate())
+            foreach ((int childIndex, MDDNode childMddNode) in node.AllSteps[mddIndex].children.Enumerate())
             {
-                if (node.currentMoves != null && childMddNode.move.IsColliding(node.currentMoves))  // Can happen. We only prune partially, we don't build the full k-agent MDD.
+                if (node.CurrentMoves != null && childMddNode.move.IsColliding(node.CurrentMoves))  // Can happen. We only prune partially, we don't build the full k-agent MDD.
                     continue;
 
-                A_Star_MDDs_Node childNode = new(node, mddIndex != node.allSteps.Length - 1);
-                childNode.allSteps[mddIndex] = childMddNode;
+                A_Star_MDDs_Node childNode = new(node, mddIndex != node.AllSteps.Length - 1);
+                childNode.AllSteps[mddIndex] = childMddNode;
 
                 // Update target conflict count and prune nodes that can't get to the target conflict count
                 childNode.UpdateRemainingDeltaConflictCount(mddIndex, childIndex);
-                if (childNode.remainingDeltaConflictCount == ushort.MaxValue || // Last move was bad - not sure this can happen here
+                if (childNode.RemainingDeltaConflictCount == ushort.MaxValue || // Last move was bad - not sure this can happen here
                     (childNode.hasChildrenForCurrentDeltaConflictCount(mddIndex + 1) == false))  // No children that can reach the target
                     continue;
 
-                if (mddIndex < node.allSteps.Length - 1) // More MDD nodes need to choose a child
-                    childNode.currentMoves.Add(childMddNode.move);
+                if (mddIndex < node.AllSteps.Length - 1) // More MDD nodes need to choose a child
+                    childNode.CurrentMoves.Add(childMddNode.move);
                 else // Moved the last agent
-                    childNode.currentMoves = null; // To reduce memory load and lookup times
+                    childNode.CurrentMoves = null; // To reduce memory load and lookup times
 
                 // Set the node's prev to its real parent, skipping over the intermediate nodes.
                 if (mddIndex != 0)
-                    childNode.prev = node.prev;
+                    childNode.Prev = node.Prev;
                 else
-                    childNode.prev = node;
+                    childNode.Prev = node;
 
                 generated.Add(childNode);
             }
@@ -200,18 +201,18 @@ class A_Star_MDDs : IConflictReporting
         return generated;
     }
 
-    protected Dictionary<int, int> conflictCounts;
-    protected Dictionary<int, List<int>> conflictTimes;
+    private Dictionary<int, int> _conflictCounts;
+    private Dictionary<int, List<int>> _conflictTimes;
 
     /// <summary>
     /// </summary>
     /// <returns>Map each external agent to the number of conflicts with their path the solution has</returns>
-    public Dictionary<int, int> GetExternalConflictCounts() => this.conflictCounts;
+    public Dictionary<int, int> GetExternalConflictCounts() => _conflictCounts;
 
     /// <summary>
     /// </summary>
     /// <returns>Map each external agent to a list of times the solution has a conflict with theirs</returns>
-    public Dictionary<int, List<int>> GetConflictTimes() => this.conflictTimes;
+    public Dictionary<int, List<int>> GetConflictTimes() => _conflictTimes;
     
     public void Expand(A_Star_MDDs_Expander currentNode)
     {
@@ -223,38 +224,33 @@ class A_Star_MDDs : IConflictReporting
 
             if (IsLegalMove(child))
             {
-                child.conflictCount = child.prev.conflictCount;
-                child.UpdateConflicts(CAT);
+                child.ConflictCount = child.Prev.ConflictCount;
+                child.UpdateConflicts(_cat);
 
-                bool was_closed = this.closedList.ContainsKey(child);
+                bool was_closed = _closedList.ContainsKey(child);
                 if (was_closed)
                 {
-                    A_Star_MDDs_Node inClosedList = this.closedList[child];
+                    A_Star_MDDs_Node inClosedList = _closedList[child];
 
-                    if (inClosedList.conflictCount > child.conflictCount)
+                    if (inClosedList.ConflictCount > child.ConflictCount)
                     {
-                        closedList.Remove(inClosedList);
-                        openList.Remove(inClosedList);
+                        _closedList.Remove(inClosedList);
+                        _openList.Remove(inClosedList);
                         was_closed = false;
                     }
                 }
                 if (!was_closed)
                 {
-                    this.openList.Add(child);
-                    this.closedList.Add(child, child);
-                    generated++;
+                    _closedList.Add(child, child);
+                    Generated++;
                 }
             }
         }
     }
 
-    public int GetGenerated() => this.generated;
-        
-    public int GetExpanded() => this.expanded;
-        
     private bool GoalTest(A_Star_MDDs_Node toCheck)
     {
-        if (toCheck.GetDepth() == problem[0].levels.Length - 1)
+        if (toCheck.GetDepth() == _problem[0].levels.Length - 1)
             return true;
         return false;
     }
@@ -262,21 +258,21 @@ class A_Star_MDDs : IConflictReporting
     private SinglePlan[] GetAnswer(A_Star_MDDs_Node finish)
     {
         // TODO: Move the construction of the SinglePlans to a static method in SinglePlan
-        List<Move>[] routes = new List<Move>[problem.Length];
+        List<Move>[] routes = new List<Move>[_problem.Length];
         for (int i = 0; i < routes.Length; i++)
             routes[i] = [];
 
         A_Star_MDDs_Node current = finish;
         while (current != null)
         {
-            for (int i = 0; i < problem.Length; i++)
+            for (int i = 0; i < _problem.Length; i++)
             {
-                routes[i].Add(new Move(current.allSteps[i].move));
+                routes[i].Add(new Move(current.AllSteps[i].move));
             }
-            current = current.prev;
+            current = current.Prev;
         }
 
-        var ans = new SinglePlan[problem.Length];
+        SinglePlan[] ans = new SinglePlan[_problem.Length];
         for (int i = 0; i < ans.Length; i++)
         {
             routes[i].Reverse();
@@ -291,13 +287,13 @@ class A_Star_MDDs : IConflictReporting
     {
         if (to == null)
             return false;
-        if (to.prev == null)
+        if (to.Prev == null)
             return true;
-        for (int i = 0; i < problem.Length; i++)
+        for (int i = 0; i < _problem.Length; i++)
         {
-            for (int j = i+1; j < to.allSteps.Length; j++)
+            for (int j = i+1; j < to.AllSteps.Length; j++)
             {
-                if (CheckIfLegal(to.allSteps[i], to.allSteps[j]) == false)
+                if (CheckIfLegal(to.AllSteps[i], to.AllSteps[j]) == false)
                     return false;
             }
         }
@@ -305,78 +301,75 @@ class A_Star_MDDs : IConflictReporting
     }
 }
 
-class A_Star_MDDs_Node : IComparable<IBinaryHeapItem>, IBinaryHeapItem
+class A_Star_MDDs_Node
 {
     /// <summary>
     /// The last move of all agents that have already moved in this turn.
     /// Used for making sure the next agent move doesn't collide with moves already made.
     /// Used while generating this node, nullified when done.
     /// </summary>
-    public HashSet<TimedMove> currentMoves;
-    public MDDNode[] allSteps;
-    public A_Star_MDDs_Node prev;
-    public int conflictCount;
-    public Dictionary<int, int> conflictCounts;
-    public Dictionary<int, List<int>> conflictTimes;
-    int binaryHeapIndex;
+    public HashSet<TimedMove> CurrentMoves { get; set; }
+    public MDDNode[] AllSteps { get; set; }
+    public A_Star_MDDs_Node Prev { get; set; }
+    public int ConflictCount { get; set; }
+    public Dictionary<int, int> ConflictCounts { get; set; }
+    public Dictionary<int, List<int>> ConflictTimes { get; set; }
 
-    public bool alreadyExpanded;
+    public bool AlreadyExpanded { get; set; }
+
     /// <summary>
     /// Starts at zero, incremented after a node is expanded once. Set on Expand.
     /// </summary>
-    public ushort targetDeltaConflictCount = 0;
+    public ushort TargetDeltaConflictCount { get; set; } = 0;
     /// <summary>
     /// Remaining delta conflict count towards targetDeltaConflictCount. Reset on Expand.
     /// </summary>
-    public ushort remainingDeltaConflictCount;
+    public ushort RemainingDeltaConflictCount { get; set; }
     /// <summary>
     /// For each MDD node and each child it has, the effect of that choosing that child on the conflict count.
     /// byte.MaxValue means this is an illegal move. Only computed on demand.
     /// </summary>
-    protected byte[][] singleAgentDeltaConflictCounts;
+    private byte[][] _singleAgentDeltaConflictCounts;
     /// <summary>
     /// Only computed on demand
     /// </summary>
-    protected ushort maxDeltaConflictCount;
+    private ushort _maxDeltaConflictCount;
     /// <summary>
     /// Per each MDD node and delta conflict count, has 1 if that delta F is achievable by choosing child MDD nodes starting from this one on,
     /// -1 if it isn't, and 0 if we don't know yet.
     /// Only computed on demand
     /// </summary>
-    protected sbyte[][] conflictCountLookup;
+    private sbyte[][] _conflictCountLookup;
 
     /// <summary>
     /// From generated nodes. Allows expansion table to be garbage collected before all generated nodes are expanded.
     /// </summary>
     public void ClearExpansionData()
     {
-        this.singleAgentDeltaConflictCounts = null;
-        this.conflictCountLookup = null;
-        this.currentMoves = null;
+        _singleAgentDeltaConflictCounts = null;
+        _conflictCountLookup = null;
+        CurrentMoves = null;
     }
 
     /// <summary>
     /// Counts the number of times this node collides with each agent move in the conflict avoidance table.
     /// </summary>
-    /// <param name="CAT"></param>
-    /// <returns></returns>
     public virtual void IncrementConflictCounts(ConflictAvoidanceTable CAT)
     {
-        foreach (var mddNode in this.allSteps)
+        foreach (var mddNode in AllSteps)
         {
-            mddNode.move.IncrementConflictCounts(CAT, this.conflictCounts, this.conflictTimes);
+            mddNode.move.IncrementConflictCounts(CAT, ConflictCounts, ConflictTimes);
         }
     }
 
     /// <summary>
     /// Returns whether all possible f values were generated from this node already
     /// </summary>
-    /// <returns></returns>
-    public bool hasMoreChildren() => this.targetDeltaConflictCount <= this.maxDeltaConflictCount;
+    public bool hasMoreChildren() => TargetDeltaConflictCount <= _maxDeltaConflictCount;
 
-    public bool IsAlreadyExpanded() => alreadyExpanded;
+    public bool IsAlreadyExpanded() => AlreadyExpanded;
 
-    public bool hasChildrenForCurrentDeltaConflictCount(int agentNum = 0) => existsChildForConflictCount(agentNum, this.remainingDeltaConflictCount);
+    public bool hasChildrenForCurrentDeltaConflictCount(int agentNum = 0) => existsChildForConflictCount(agentNum, RemainingDeltaConflictCount);
 
     /// <summary>
     /// An MDD child node was chosen between calculating the singleAgentDeltaConflictCounts and this call.
@@ -386,15 +379,15 @@ class A_Star_MDDs_Node : IComparable<IBinaryHeapItem>, IBinaryHeapItem
     /// <param name="childIndex">which of the mdd node's children was just chosen</param>
     public void UpdateRemainingDeltaConflictCount(int mddIndex, int childIndex)
     {
-        if (this.remainingDeltaConflictCount == ushort.MaxValue)
+        if (RemainingDeltaConflictCount == ushort.MaxValue)
             Trace.Assert(false,
                             $"Remaining deltaConflictCount is ushort.MaxValue, a reserved value with special meaning. agentIndex={mddIndex}");
 
-        byte lastMoveDeltaConflictCount = this.singleAgentDeltaConflictCounts[mddIndex][childIndex];
-        if (lastMoveDeltaConflictCount != byte.MaxValue && this.remainingDeltaConflictCount >= lastMoveDeltaConflictCount)
-            this.remainingDeltaConflictCount -= lastMoveDeltaConflictCount;
+        byte lastMoveDeltaConflictCount = _singleAgentDeltaConflictCounts[mddIndex][childIndex];
+        if (lastMoveDeltaConflictCount != byte.MaxValue && RemainingDeltaConflictCount >= lastMoveDeltaConflictCount)
+            RemainingDeltaConflictCount -= lastMoveDeltaConflictCount;
         else
-            this.remainingDeltaConflictCount = ushort.MaxValue; // Either because last move was illegal or because the delta F from the last move was more than the entire remaining delta F budget
+            RemainingDeltaConflictCount = ushort.MaxValue; // Either because last move was illegal or because the delta F from the last move was more than the entire remaining delta F budget
     }
 
     /// <summary>
@@ -406,34 +399,34 @@ class A_Star_MDDs_Node : IComparable<IBinaryHeapItem>, IBinaryHeapItem
     protected bool existsChildForConflictCount(int mddIndex, ushort remainingTargetDeltaConflictCount)
     {
         // Stopping conditions:
-        if (mddIndex == this.allSteps.Length)
+        if (mddIndex == AllSteps.Length)
         {
             if (remainingTargetDeltaConflictCount == 0)
                 return true;
             return false;
         }
 
-        if (conflictCountLookup[mddIndex][remainingTargetDeltaConflictCount] != 0) // Answer known (arrays are initialized to zero). TODO: Replace the magic.
+        if (_conflictCountLookup[mddIndex][remainingTargetDeltaConflictCount] != 0) // Answer known (arrays are initialized to zero). TODO: Replace the magic.
         {
-            return conflictCountLookup[mddIndex][remainingTargetDeltaConflictCount] == 1; // Return known answer. TODO: Replace the magic
+            return _conflictCountLookup[mddIndex][remainingTargetDeltaConflictCount] == 1; // Return known answer. TODO: Replace the magic
         }
 
         // Recursive actions:
-        for (int i = 0; i < this.allSteps[mddIndex].children.Count; i++)
+        for (int i = 0; i < AllSteps[mddIndex].children.Count; i++)
         {
-            if (singleAgentDeltaConflictCounts[mddIndex][i] > remainingTargetDeltaConflictCount) // Small optimization - no need to make the recursive
+            if (_singleAgentDeltaConflictCounts[mddIndex][i] > remainingTargetDeltaConflictCount) // Small optimization - no need to make the recursive
                                                                                                 // call just to request a negative target from it and
                                                                                                 // get false (because we assume the heuristic function
                                                                                                 // is consistent)
                 continue;
             if (existsChildForConflictCount(mddIndex + 1,
-                                            (byte)(remainingTargetDeltaConflictCount - singleAgentDeltaConflictCounts[mddIndex][i])))
+                                            (byte)(remainingTargetDeltaConflictCount - _singleAgentDeltaConflictCounts[mddIndex][i])))
             {
-                conflictCountLookup[mddIndex][remainingTargetDeltaConflictCount] = 1;
+                _conflictCountLookup[mddIndex][remainingTargetDeltaConflictCount] = 1;
                 return true;
             }
         }
-        conflictCountLookup[mddIndex][remainingTargetDeltaConflictCount] = -1;
+        _conflictCountLookup[mddIndex][remainingTargetDeltaConflictCount] = -1;
         return false;
     }
 
@@ -448,22 +441,22 @@ class A_Star_MDDs_Node : IComparable<IBinaryHeapItem>, IBinaryHeapItem
     public void calcSingleAgentDeltaConflictCounts(ConflictAvoidanceTable CAT)
     {
         // Init
-        this.singleAgentDeltaConflictCounts = new byte[this.allSteps.Length][];
-        for (int i = 0; i < this.allSteps.Length; i++)
+        _singleAgentDeltaConflictCounts = new byte[AllSteps.Length][];
+        for (int i = 0; i < AllSteps.Length; i++)
         {
-            this.singleAgentDeltaConflictCounts[i] = new byte[this.allSteps[i].children.Count];
+            _singleAgentDeltaConflictCounts[i] = new byte[AllSteps[i].children.Count];
         }
 
         int conflictCountAfter;
 
-        this.maxDeltaConflictCount = 0;
+        _maxDeltaConflictCount = 0;
 
         // Set values
-        for (int i = 0; i < this.allSteps.Length; i++)
+        for (int i = 0; i < AllSteps.Length; i++)
         {
             int singleAgentMaxLegalDeltaConflictCount = -1;
 
-            foreach ((int childIndex, MDDNode child) in this.allSteps[i].children.Enumerate())
+            foreach ((int childIndex, MDDNode child) in AllSteps[i].children.Enumerate())
             {
                 if (CAT != null)
                 {
@@ -472,37 +465,37 @@ class A_Star_MDDs_Node : IComparable<IBinaryHeapItem>, IBinaryHeapItem
                 else
                     conflictCountAfter = 0;
 
-                singleAgentDeltaConflictCounts[i][childIndex] = (byte)conflictCountAfter;
-                singleAgentMaxLegalDeltaConflictCount = Math.Max(singleAgentMaxLegalDeltaConflictCount, singleAgentDeltaConflictCounts[i][childIndex]);
+                _singleAgentDeltaConflictCounts[i][childIndex] = (byte)conflictCountAfter;
+                singleAgentMaxLegalDeltaConflictCount = Math.Max(singleAgentMaxLegalDeltaConflictCount, _singleAgentDeltaConflictCounts[i][childIndex]);
             }
 
             if (singleAgentMaxLegalDeltaConflictCount == -1) // No legal action for this agent, so no legal children exist for this node
             {
-                this.maxDeltaConflictCount = 0; // Can't make it negative without widening the field.
+                _maxDeltaConflictCount = 0; // Can't make it negative without widening the field.
                 break;
             }
 
-            this.maxDeltaConflictCount += (byte)singleAgentMaxLegalDeltaConflictCount;
+            _maxDeltaConflictCount += (byte)singleAgentMaxLegalDeltaConflictCount;
         }
 
-        conflictCountLookup = new sbyte[this.allSteps.Length][];
-        for (int i = 0; i < conflictCountLookup.Length; i++)
+        _conflictCountLookup = new sbyte[AllSteps.Length][];
+        for (int i = 0; i < _conflictCountLookup.Length; i++)
         {
-            conflictCountLookup[i] = new sbyte[this.maxDeltaConflictCount + 1];  // Towards the last agents most of the row will be wasted (the last one can do delta F of 0 or 1),
+            _conflictCountLookup[i] = new sbyte[_maxDeltaConflictCount + 1];  // Towards the last agents most of the row will be wasted (the last one can do delta F of 0 or 1),
                                                                                     // but it's easier than fiddling with array sizes
         }
     }
 
     public A_Star_MDDs_Node(MDDNode[] allSteps, A_Star_MDDs_Node prevStep)
     { 
-        this.allSteps = allSteps;
-        this.prev = prevStep;
-        this.currentMoves = null;  // All non-intermediate nodes have currentMoves == null
-        this.conflictCount = 0;
+        AllSteps = allSteps;
+        Prev = prevStep;
+        CurrentMoves = null;  // All non-intermediate nodes have currentMoves == null
+        ConflictCount = 0;
 
         // Initialize conflict tracking data structures
-        this.conflictCounts = new Dictionary<int, int>();
-        this.conflictTimes = new Dictionary<int, List<int>>();
+        ConflictCounts = [];
+        ConflictTimes = [];
     }
 
     /// <summary>
@@ -510,37 +503,37 @@ class A_Star_MDDs_Node : IComparable<IBinaryHeapItem>, IBinaryHeapItem
     /// </summary>
     public A_Star_MDDs_Node(A_Star_MDDs_Node cpy, bool createIntermediate)
     {
-        this.allSteps = new MDDNode[cpy.allSteps.Length];
-        for (int i = 0; i < allSteps.Length; i++)
+        AllSteps = new MDDNode[cpy.AllSteps.Length];
+        for (int i = 0; i < AllSteps.Length; i++)
         {
-            this.allSteps[i] = cpy.allSteps[i];
+            AllSteps[i] = cpy.AllSteps[i];
         }
-        this.prev = cpy.prev;
-        if (cpy.currentMoves != null)
+        Prev = cpy.Prev;
+        if (cpy.CurrentMoves != null)
         {
             // cpy is an intermediate node
             if (createIntermediate)
-                this.currentMoves = new HashSet<TimedMove>(cpy.currentMoves);
+                CurrentMoves = [.. cpy.CurrentMoves];
             else
-                this.currentMoves = cpy.currentMoves;  // We're not going to add anything currentMoves
+                CurrentMoves = cpy.CurrentMoves;  // We're not going to add anything currentMoves
         }
         else
             // cpy is a concrete node
-            this.currentMoves = new HashSet<TimedMove>(capacity: cpy.allSteps.Length);
+            CurrentMoves = new HashSet<TimedMove>(capacity: cpy.AllSteps.Length);
 
         // The conflictTimes and conflictCounts are only copied later if necessary.
 
-        alreadyExpanded = false; // Creating a new unexpanded node from cpy
+        AlreadyExpanded = false; // Creating a new unexpanded node from cpy
 
         // For intermediate nodes created during expansion (fully expanded nodes have these fields recalculated when they're expanded)
-        targetDeltaConflictCount = cpy.targetDeltaConflictCount;  // Just to ease debugging
-        remainingDeltaConflictCount = cpy.remainingDeltaConflictCount;
-        singleAgentDeltaConflictCounts = cpy.singleAgentDeltaConflictCounts; // For the UpdateRemainingDeltaConflictCount call on temporary nodes.
+        TargetDeltaConflictCount = cpy.TargetDeltaConflictCount;  // Just to ease debugging
+        RemainingDeltaConflictCount = cpy.RemainingDeltaConflictCount;
+        _singleAgentDeltaConflictCounts = cpy._singleAgentDeltaConflictCounts; // For the UpdateRemainingDeltaConflictCount call on temporary nodes.
                                                                                 // Notice that after an agent is moved its row won't be up-to-date.
-        conflictCountLookup = cpy.conflictCountLookup; // For the hasChildrenForCurrentDeltaConflictCount call on temporary nodes.
+        _conflictCountLookup = cpy._conflictCountLookup; // For the hasChildrenForCurrentDeltaConflictCount call on temporary nodes.
                                                         // Notice that after an agent is moved, all rows up to and including the one of the agent that moved
                                                         // won't be up-to-date.
-        maxDeltaConflictCount = cpy.maxDeltaConflictCount; // Not necessarily achievable after some of the agents moved.
+        _maxDeltaConflictCount = cpy._maxDeltaConflictCount; // Not necessarily achievable after some of the agents moved.
                                                             // The above is OK because we won't be using data for agents that already moved.
     }
 
@@ -554,77 +547,63 @@ class A_Star_MDDs_Node : IComparable<IBinaryHeapItem>, IBinaryHeapItem
         if (obj == null)
             return false;
         A_Star_MDDs_Node comp = (A_Star_MDDs_Node)obj;
-        return this.allSteps.SequenceEqual<MDDNode>(comp.allSteps);
+        return AllSteps.SequenceEqual<MDDNode>(comp.AllSteps);
     }
 
     /// <summary>
     /// Only uses the steps
     /// </summary>
-    /// <returns></returns>
     public override int GetHashCode()
     {
         unchecked
         {
             int code = 0;
-            for (int i = 0; i < allSteps.Length; i++)
+            for (int i = 0; i < AllSteps.Length; i++)
             {
-                code += allSteps[i].GetHashCode() * Constants.PRIMES_FOR_HASHING[i % Constants.PRIMES_FOR_HASHING.Length];
+                code += AllSteps[i].GetHashCode() * Constants.PRIMES_FOR_HASHING[i % Constants.PRIMES_FOR_HASHING.Length];
             }
             return code;
         }
     }
 
-    public int GetDepth() { return allSteps[0].move.Time; }
+    public int GetDepth() => AllSteps[0].move.Time;
 
     /// <summary>
     /// Updates the conflictCount member according to given CATs. Table may be null.
     /// </summary>
-    /// <param name="CAT"></param>
-    public void UpdateConflicts(ConflictAvoidanceTable CAT)
+    public void UpdateConflicts(ConflictAvoidanceTable cat)
     {
-        if (this.prev == null)
+        if (Prev == null)
             return;
-        if (CAT != null)
+        if (cat != null)
         {
-            for (int i = 0; i < allSteps.Length; i++)
+            for (int i = 0; i < AllSteps.Length; i++)
             {
-                if (CAT.ContainsKey(allSteps[i].move))
-                    conflictCount += CAT[allSteps[i].move].Count;
+                if (cat.ContainsKey(AllSteps[i].move))
+                    ConflictCount += cat[AllSteps[i].move].Count;
             }
         }
     }
 
-    /// <summary>
-    /// BH_Item implementation
-    /// </summary>
-    /// <returns></returns>
-    public int GetIndexInHeap() { return binaryHeapIndex; }
-        
-    /// <summary>
-    /// BH_Item implementation
-    /// </summary>
-    /// <returns></returns>
-    public void SetIndexInHeap(int index) { binaryHeapIndex = index; }
-
-    /// <summary>
-    /// Prefers fewer conflicts. If the number of conflicts is the same, prefers more depth.
-    /// </summary>
-    /// <param name="other"></param>
-    /// <returns></returns>
-    public int CompareTo(IBinaryHeapItem other)
+    public class Comparer : IComparer<A_Star_MDDs_Node>
     {
-        A_Star_MDDs_Node that = (A_Star_MDDs_Node)other;
-        if (this.conflictCount + this.targetDeltaConflictCount < that.conflictCount + that.targetDeltaConflictCount)
-            return -1;
-        if (this.conflictCount + this.targetDeltaConflictCount > that.conflictCount + that.targetDeltaConflictCount)
-            return 1;
+        /// <summary>
+        /// Prefers fewer conflicts. If the number of conflicts is the same, prefers more depth.
+        /// </summary>
+        public int Compare(A_Star_MDDs_Node x, A_Star_MDDs_Node y)
+        {
+            if (x.ConflictCount + x.TargetDeltaConflictCount < y.ConflictCount + y.TargetDeltaConflictCount)
+                return -1;
+            if (x.ConflictCount + x.TargetDeltaConflictCount > y.ConflictCount + y.TargetDeltaConflictCount)
+                return 1;
 
-        if (this.GetDepth() > that.GetDepth())
-            return -1;
-        if (this.GetDepth() < that.GetDepth())
-            return 1;
+            if (x.GetDepth() > y.GetDepth())
+                return -1;
+            if (x.GetDepth() < y.GetDepth())
+                return 1;
 
-        return 0;
+            return 0;
+        }
     }
 }
 
@@ -640,9 +619,9 @@ class A_Star_MDDs_Expander
 
     public A_Star_MDDs_Expander(A_Star_MDDs_Node a_star_mdd_node)
     {
-        this.a_star_mdd_node = a_star_mdd_node;
-        this.chosenChild = new int[a_star_mdd_node.allSteps.Length];
-        foreach (MDDNode mddNode in a_star_mdd_node.allSteps)
+        a_star_mdd_node = a_star_mdd_node;
+        chosenChild = new int[a_star_mdd_node.AllSteps.Length];
+        foreach (MDDNode mddNode in a_star_mdd_node.AllSteps)
         {
             if (mddNode.children.Count == 0)
             {
@@ -654,13 +633,13 @@ class A_Star_MDDs_Expander
 
     public void Setup(A_Star_MDDs_Node a_star_mdd_node)
     {
-        this.a_star_mdd_node = a_star_mdd_node;
-        this.chosenChild = new int[a_star_mdd_node.allSteps.Length];
-        foreach (MDDNode mddNode in a_star_mdd_node.allSteps)
+        a_star_mdd_node = a_star_mdd_node;
+        chosenChild = new int[a_star_mdd_node.AllSteps.Length];
+        foreach (MDDNode mddNode in a_star_mdd_node.AllSteps)
         {
             if (mddNode.children.Count == 0)
             {
-                this.chosenChild[0] = -1;
+                chosenChild[0] = -1;
                 break;
             }
         }
@@ -672,12 +651,12 @@ class A_Star_MDDs_Expander
     /// <returns>The next child, or null if there aren't any more</returns>
     public A_Star_MDDs_Node GetNextChild()
     {
-        if (this.chosenChild[0] == -1)
+        if (chosenChild[0] == -1)
             return null;
-        var mddNodes = new MDDNode[a_star_mdd_node.allSteps.Length];
+        var mddNodes = new MDDNode[a_star_mdd_node.AllSteps.Length];
         for (int i = 0; i < mddNodes.Length; i++)
         {
-            mddNodes[i] = a_star_mdd_node.allSteps[i].children.ElementAt(this.chosenChild[i]);
+            mddNodes[i] = a_star_mdd_node.AllSteps[i].children.ElementAt(chosenChild[i]);
         }
         SetNextChildIndices();
         return new A_Star_MDDs_Node(mddNodes, a_star_mdd_node);
@@ -688,18 +667,18 @@ class A_Star_MDDs_Expander
     /// </summary>
     private void SetNextChildIndices()
     {
-        SetNextChildIndices(this.chosenChild.Length - 1);
+        SetNextChildIndices(chosenChild.Length - 1);
     }
 
     private void SetNextChildIndices(int agentNum)
     {
         if (agentNum == -1)
-            this.chosenChild[0] = -1;
-        else if (this.chosenChild[agentNum] < a_star_mdd_node.allSteps[agentNum].children.Count - 1)
-            this.chosenChild[agentNum]++;
+            chosenChild[0] = -1;
+        else if (chosenChild[agentNum] < a_star_mdd_node.AllSteps[agentNum].children.Count - 1)
+            chosenChild[agentNum]++;
         else
         {
-            this.chosenChild[agentNum] = 0;
+            chosenChild[agentNum] = 0;
             SetNextChildIndices(agentNum - 1);
         }
     }
