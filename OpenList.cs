@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using mapfWin;
 
 namespace mapf;
 
@@ -14,7 +15,7 @@ namespace mapf;
 public class OpenList<Item> : IAccumulatingStatisticsCsvWriter
 {
     private Queue<Item> _queue;
-    protected SortedSet<Item> _sortedSet;
+    protected PriorityQueue<Item> _sortedSet;
 
     protected ISolver _user;  // For updating its stats
     private int _quickInsertionCount;
@@ -27,7 +28,7 @@ public class OpenList<Item> : IAccumulatingStatisticsCsvWriter
 
     public OpenList(ISolver user, IComparer<Item> comparer)
     {
-        _sortedSet = new SortedSet<Item>(comparer);
+        _sortedSet = new PriorityQueue<Item>(comparer);
         _comparer = comparer; // need to compare outside of the _sortedSet too.
         _queue = new Queue<Item>();
 
@@ -42,7 +43,7 @@ public class OpenList<Item> : IAccumulatingStatisticsCsvWriter
     {
         if (_queue.Count != 0)
             return _queue.Peek();
-        return _sortedSet.Min;
+        return _sortedSet.Top;
     }
 
     public void Clear()
@@ -57,14 +58,14 @@ public class OpenList<Item> : IAccumulatingStatisticsCsvWriter
         {
             if (_sortedSet.Count == 0)
             {
-                _sortedSet.Add(item);
+                _sortedSet.Push(item);
             }
             else
             {
-                int compareRes = _comparer.Compare(item, _sortedSet.Min);
+                int compareRes = _comparer.Compare(item, _sortedSet.Top);
                 if (compareRes != -1) // Even if equal, respect the stable order, don't "cut the line".
                 {
-                    _sortedSet.Add(item);
+                    _sortedSet.Push(item);
                 }
                 else
                 {
@@ -78,7 +79,7 @@ public class OpenList<Item> : IAccumulatingStatisticsCsvWriter
             int compareRes = _comparer.Compare( item, _queue.Peek());
             if (compareRes == 1) // item is larger than the queue
             {
-                _sortedSet.Add(item);
+                _sortedSet.Push(item);
             }
             else // 
             {
@@ -87,7 +88,7 @@ public class OpenList<Item> : IAccumulatingStatisticsCsvWriter
                     while (_queue.Count != 0)
                     {
                         Item fromQueue = _queue.Dequeue();
-                        _sortedSet.Add(fromQueue);
+                        _sortedSet.Push(fromQueue);
                         _quickInsertionCount--;
                         _quickInsertionsCancelled++;
                     }
@@ -118,8 +119,7 @@ public class OpenList<Item> : IAccumulatingStatisticsCsvWriter
         }
         else
         {
-            item = _sortedSet.Min;
-            _sortedSet.Remove(item);
+            item = _sortedSet.Pop();
         }
         return item;
     }
@@ -145,20 +145,8 @@ public class OpenList<Item> : IAccumulatingStatisticsCsvWriter
         if (removedFromQueue == true)
             return true;
 
-        if(_sortedSet.Contains(item))
-        {
-            _sortedSet.Remove(item);
-            return true;
-        }
-        return false;
+        return _sortedSet.Remove(item); 
     }
-
-    /// <summary>
-    /// Assumes item was added to the open list in the past
-    /// </summary>
-    /// <param name="item"></param>
-    /// <returns></returns>
-    public bool Contains(Item item) => _sortedSet.Contains(item);
 
     public virtual void OutputStatisticsHeader(TextWriter output)
     {

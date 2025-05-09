@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using System.Diagnostics;
+using mapfWin;
 
 namespace mapf;
 
@@ -125,10 +126,10 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
     private bool singleAgentAStar(AgentState agent)
     {
         AgentState.EquivalenceOverDifferentTimes = false;
-        SortedSet<AgentState> openList = new( _comparer );
+        PriorityQueue<AgentState> openList = new( _comparer );
         HashSet<AgentState> closedList = [];
         agent.H = _problem.GetSingleAgentOptimalCost(agent);
-        openList.Add(agent);
+        openList.Push(agent);
         AgentState node;
         _initialEstimate += agent.H;
         TimedMove queryTimedMove = new();
@@ -139,7 +140,7 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
             {
                 return false;
             }
-            node = openList.Min;
+            node = openList.Top;
             openList.Remove(node);
             if (node.H == 0)
             {
@@ -178,7 +179,7 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
             _maxPathCostSoFar = _pathCosts[end.Agent.agentNum];
     }
 
-    private void expandNode(AgentState node, SortedSet<AgentState> openList, HashSet<AgentState> closedList)
+    private void expandNode(AgentState node, PriorityQueue<AgentState> openList, HashSet<AgentState> closedList)
     {
         foreach (TimedMove move in node.LastMove.GetNextMoves())
         {
@@ -193,7 +194,7 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
                 {
                     closedList.Add(child);
                     child.H = _problem.GetSingleAgentOptimalCost(child);
-                    openList.Add(child);
+                    openList.Push(child);
                     _generated++;
                 }
             }

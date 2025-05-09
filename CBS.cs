@@ -89,7 +89,10 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
     private double _accTimePlanningPaths;
     private double _accTimeBuildingMdds;
 
+    private static readonly IComparer<CbsNode> _comparer = new CbsNode.Comparer();
+
     public int SolutionCost { get; private set; }
+
     /// <summary>
     /// The difference between the solution's cost and the f of the root node.
     /// Notice root.g != 0 in CBS.
@@ -199,9 +202,9 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
         )
     {
         if (heuristic == null)
-            OpenList = new OpenList<CbsNode>(this, _cbsNodeComparer);
+            OpenList = new OpenList<CbsNode>(this, _comparer);
         else
-            OpenList = new DynamicLazyOpenList<CbsNode>(this, _cbsNodeComparer, heuristic);
+            OpenList = new DynamicLazyOpenList<CbsNode>(this, _comparer, heuristic);
         MergeThreshold = mergeThreshold;
         _solver = generalSolver;
         _singleAgentSolver = singleAgentSolver;
@@ -1061,7 +1064,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
             bool adoptionPerformedBefore = false;
             while (true) // Until a node with a higher cost is found or a goal is found
             {
-                OpenList<CbsNode> lookAheadOpenList = new(this, _cbsNodeComparer);
+                OpenList<CbsNode> lookAheadOpenList = new(this, _comparer);
                 HashSet<CbsNode> lookAheadSameCostNodes = [];
                 HashSet<CbsNode> lookAheadLargerCostNodes = [];
                 HashSet<CbsNode> lookAheadSameCostNodesToReinsertWithHigherCost = [];
@@ -1181,7 +1184,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
         else // bypassStrategy == BypassStrategy.BEST_FIT_LOOKAHEAD and this set of costs not already done
         {
             // FIXME: lookaheadMaxExpansions isn't respected correctly here. We actually limit the number of same-cost nodes generated, which is similar but not the same.
-            OpenList<CbsNode> lookAheadOpenList = new(this, _cbsNodeComparer);
+            OpenList<CbsNode> lookAheadOpenList = new(this, _comparer);
             HashSet<CbsNode> lookAheadSameCostNodes = [];
             HashSet<CbsNode> lookAheadLargerCostNodes = [];
             HashSet<CbsNode> lookAheadSameCostNodesToReinsertWithHigherCost = [];
