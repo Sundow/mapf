@@ -14,7 +14,7 @@ namespace mapf;
 /// be pushed back, and is allowed to stop once this estimate was reached.
 /// </summary>
 /// <typeparam name="Item"></typeparam>
-public class DynamicLazyOpenList<Item> : OpenList<Item> where Item: IHeuristicSearchNode
+public class DynamicLazyOpenList<Item> : OpenList<Item> where Item : IHeuristicSearchNode
 {
     public ILazyHeuristic<Item> expensive;
     public Stopwatch stopwatch;
@@ -74,8 +74,8 @@ public class DynamicLazyOpenList<Item> : OpenList<Item> where Item: IHeuristicSe
                 node.HBonus += expensiveEstimate - node.H;
                 node.H = expensiveEstimate;
             }
-                
-            if (_comparer.Compare( node, next) == 1) // node is not the smallest F anymore - re-insert into open list
+
+            if (_comparer.Compare(node, next) == 1) // node is not the smallest F anymore - re-insert into open list
             {
                 this.Add(node);
                 this.nodesPushedBack++;

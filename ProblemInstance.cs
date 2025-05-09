@@ -58,12 +58,12 @@ public class ProblemInstance
 
     public uint NumObstacles { get; private set; }
     public uint NumLocations { get; private set; }
-        
+
     /// <summary>
     /// This field is used to identify an instance when running a set of experiments
     /// </summary>
     public int InstanceId { get; set; }
-        
+
     /// <summary>
     /// Enumerates all of the empty spots in the grid. The indices
     /// correspond directly to those used in the grid, where the major
@@ -111,8 +111,8 @@ public class ProblemInstance
     /// <param name="nObstacles"></param>
     /// <param name="nLocations"></param>
     /// <param name="cardinality"></param>
-    public void Init(AgentState[] agentStartStates, BitMatrix grid, int nObstacles=-1,
-                        int nLocations=-1, int[,] cardinality=null)
+    public void Init(AgentState[] agentStartStates, BitMatrix grid, int nObstacles = -1,
+                        int nLocations = -1, int[,] cardinality = null)
     {
         Agents = agentStartStates;
         Grid = grid;
@@ -120,11 +120,11 @@ public class ProblemInstance
         if (nObstacles == -1)
         {
             for (int i = 0; i < grid.ColumnsCount; i++)
-            for (int j = 0; j < grid.RowsCount; j++)
-            {
-                if (grid[i, j])
-                    NumObstacles++;
-            }
+                for (int j = 0; j < grid.RowsCount; j++)
+                {
+                    if (grid[i, j])
+                        NumObstacles++;
+                }
         }
         else
             NumObstacles = (uint)nObstacles;
@@ -133,13 +133,13 @@ public class ProblemInstance
             NumLocations = ((uint)(grid.ColumnsCount * grid.RowsCount)) - NumObstacles;
         else
             NumLocations = (uint)nLocations;
-            
+
         if (cardinality == null)
             PrecomputeCardinality();
         else
             _cardinality = cardinality;
     }
-        
+
     /// <summary>
     /// Compute the shortest path to the goal of every agent in the problem instance, from every location in the grid.
     /// Current implementation is a simple breadth-first search from every location in the graph.
@@ -303,7 +303,7 @@ public class ProblemInstance
 
     private static BitMatrix readBenchmarkMap(TextReader input, string line)
     {
-        
+
         string[] lineParts;
         int maxX, maxY;
         // Read grid dimensions
@@ -380,7 +380,7 @@ public class ProblemInstance
             {
                 instanceId = int.Parse(filePath.Split('_').Last());
             }
-            catch (Exception) {}
+            catch (Exception) { }
             string mapfileNameWithoutExtension;
             if (mapFilePath == null)
             {
@@ -457,7 +457,7 @@ public class ProblemInstance
                     Trace.Assert(lastIndexOfDash >= 0);
                     mapfileName = mapfileName.Substring(0, length: lastIndexOfDash) + ".map";
                     // Handle Omri's annoying naming:
-                    while (mapfileName.Contains("cross") || mapfileName.Contains("inside") || mapfileName.Contains("outside") || 
+                    while (mapfileName.Contains("cross") || mapfileName.Contains("inside") || mapfileName.Contains("outside") ||
                             mapfileName.Contains("swap") || mapfileName.Contains("tight"))
                     {
                         lastIndexOfDash = mapfileName.LastIndexOf('-');
@@ -518,11 +518,11 @@ public class ProblemInstance
                     // as (column,row) and we invert it.
                     startY = int.Parse(lineParts[4]);
                     startX = int.Parse(lineParts[5]);
-                    if (grid[startX,startY])
+                    if (grid[startX, startY])
                         throw new Exception($"Agent {agentNum} start location ({startX},{startY}) is on an obstacle");
                     goalY = int.Parse(lineParts[6]);
                     goalX = int.Parse(lineParts[7]);
-                    if (grid[goalX,goalY])
+                    if (grid[goalX, goalY])
                         throw new Exception($"Agent {agentNum} goal location ({goalX},{goalY}) is on an obstacle");
                     optimalCost = double.Parse(lineParts[8]);
                     agent = new Agent(goalX, goalY, agentNum);
@@ -701,19 +701,19 @@ public class ProblemInstance
     /// <returns>n, where the agent is located at the nth non-obstacle
     /// location in our grid.</returns>
     public int GetCardinality(Move move) => _cardinality[move.X, move.Y];
-        
+
     private void PrecomputeCardinality()
     {
         _cardinality = new int[Grid.ColumnsCount, Grid.RowsCount];
         int maxCardinality = 0;
         for (int i = 0; i < Grid.ColumnsCount; ++i)
-        for (int j = 0; j < Grid.RowsCount; ++j)
-        {
-            if (Grid[i,j])
-                _cardinality[i, j] = -1;
-            else
-                _cardinality[i, j] = maxCardinality++;
-        }
+            for (int j = 0; j < Grid.RowsCount; ++j)
+            {
+                if (Grid[i, j])
+                    _cardinality[i, j] = -1;
+                else
+                    _cardinality[i, j] = maxCardinality++;
+            }
     }
 
     /// <summary>

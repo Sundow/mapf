@@ -6,7 +6,7 @@ using System.Diagnostics;
 using ExtensionMethods;
 
 namespace mapf;
-   
+
 /// <summary>
 /// This is an implementation of the A* algorithm for the MAPF problem.
 /// It r
@@ -83,7 +83,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
     {
         this.openList = new OpenList<WorldState>(this, new WorldState.Comparer());
         this.heuristic = heuristic;
-            
+
         this.mstar = mStar;
         this.doMstarShuffle = mStarShuffle;
     }
@@ -127,14 +127,14 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
         this.constraints = constraints;
         if (positiveConstraints != null)
         {
-                this.mustConstraints = new Dictionary<int, TimedMove>[positiveConstraints.Max(con => con.GetTimeStep()) + 1]; // To have index MAX, array needs MAX + 1 places.
-                foreach (CbsConstraint con in positiveConstraints)
-                {
-                    int timeStep = con.GetTimeStep();
-                    if (this.mustConstraints[timeStep] == null)
-                        this.mustConstraints[timeStep] = [];
-                    this.mustConstraints[timeStep][con.agentNum] = con.move;
-                }
+            this.mustConstraints = new Dictionary<int, TimedMove>[positiveConstraints.Max(con => con.GetTimeStep()) + 1]; // To have index MAX, array needs MAX + 1 places.
+            foreach (CbsConstraint con in positiveConstraints)
+            {
+                int timeStep = con.GetTimeStep();
+                if (this.mustConstraints[timeStep] == null)
+                    this.mustConstraints[timeStep] = [];
+                this.mustConstraints[timeStep][con.agentNum] = con.move;
+            }
         }
 
         if (this.mstar)
@@ -250,7 +250,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
             output.Write(Run.RESULTS_DELIMITER);
         }
 
-            
+
         this.heuristic.OutputStatisticsHeader(output);
 
         this.openList.OutputStatisticsHeader(output);
@@ -300,7 +300,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
     {
         get
         {
-            return (this.mstar? 11 : 9) + this.heuristic.NumStatsColumns + this.openList.NumStatsColumns;
+            return (this.mstar ? 11 : 9) + this.heuristic.NumStatsColumns + this.openList.NumStatsColumns;
         }
     }
 
@@ -394,7 +394,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
     /// <returns>True if solved</returns>
     public virtual bool Solve()
     {
-        int initialEstimate = (int) this.heuristic.h(openList.Peek()); // g=0 initially. Recomputing the heuristic to drop the boost from minCost info.
+        int initialEstimate = (int)this.heuristic.h(openList.Peek()); // g=0 initially. Recomputing the heuristic to drop the boost from minCost info.
 
         int lastF = -1;
         WorldState lastNode = null;
@@ -404,7 +404,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
             // Check if max time has been exceeded
             if (stopwatch.ElapsedMilliseconds > Constants.MAX_TIME)
             {
-                totalCost = (int) Constants.SpecialCosts.TIMEOUT_COST;
+                totalCost = (int)Constants.SpecialCosts.TIMEOUT_COST;
                 Console.WriteLine("Out of time");
                 this.solutionDepth = openList.Peek().G + openList.Peek().H - initialEstimate; // A minimum estimate, assuming h is admissible
                 this.Clear();
@@ -451,17 +451,17 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
 
             if (!this.mstar && // Backpropagation can cause the root to be re-expanded after many more expensive nodes were expanded.
                 this.openList is not DynamicLazyOpenList<WorldState> && // When the open list has just one node,
-                                                                                // application of the expensive heuristic is skipped altogether.
-                                                                                // This can cause decreasing F values.
+                                                                        // application of the expensive heuristic is skipped altogether.
+                                                                        // This can cause decreasing F values.
                 this.openList is not DynamicRationalLazyOpenList &&
                 currentNode.MinGoalCost == -1  // If we were given a minGoalCost (by ID, for example), then at some point we're going to use up the boost to the h-value we gave the root
                 )
                 if (currentNode.F < lastF)
                     Trace.Assert(false, $"A* node with decreasing F: {currentNode.F} < {lastF}.");
-            else
-            {
-                // TODO: Record the max F. Assert that the goal's F isn't smaller than it.
-            }
+                else
+                {
+                    // TODO: Record the max F. Assert that the goal's F isn't smaller than it.
+                }
             lastF = currentNode.F;
             lastNode = currentNode;
 
@@ -521,7 +521,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
             }
         }
 
-        totalCost = (int) Constants.SpecialCosts.NO_SOLUTION_COST;
+        totalCost = (int)Constants.SpecialCosts.NO_SOLUTION_COST;
         this.Clear();
         return false;
     }
@@ -537,7 +537,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
     {
         var intermediateNodes = new List<WorldState>() { node };
 
-        for (int agentIndex = 0; agentIndex < this.instance.Agents.Length ; ++agentIndex)
+        for (int agentIndex = 0; agentIndex < this.instance.Agents.Length; ++agentIndex)
         {
             if (stopwatch.ElapsedMilliseconds > Constants.MAX_TIME)
                 return;
@@ -583,7 +583,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
                 int newParentH = maxChildH - deltaGOfChildWithMaxH;
                 parent.HBonus += newParentH - parent.H;
                 parent.H = newParentH; // Also good for partial expansion algs that reinsert the expanded node into the open list
-                                        // (in addition to aiding the forward Path-Max).
+                                       // (in addition to aiding the forward Path-Max).
                 ++bpmxBoosts;
                 // FIXME: Code duplication with Forward Path-Max
             }
@@ -610,7 +610,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
         if (this.debug)
             Debug.WriteLine("");
     }
-        
+
     /// <summary>
     /// Expands a single agent in the nodes.
     /// This includes:
@@ -749,7 +749,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
                     // Set the node's prevStep to its real parent, skipping over the intermediate nodes.
                     if (agentIndex != 0)
                         childNode.PrevStep = currentNode.PrevStep;
-                        
+
                     GeneratedNodes.Add(childNode);
                 }
             }
@@ -839,10 +839,10 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
         if (this.mstar)
         {
             bool agentInCollisionSet = fromNode.CollisionSets.IsSingle(agentIndex);
-                                        //fromNode.currentCollisionSet.Contains(agentIndex);// ||
-                                        //(fromNode.individualMStarPlanBases[agentIndex] != null &&
-                                        // this.mstarPlanBasesToTheirPlans[fromNode.individualMStarPlanBases[agentIndex]][agentIndex] == null); // Parent plan was abandoned. Imagine a backpropagation happened.
-                
+            //fromNode.currentCollisionSet.Contains(agentIndex);// ||
+            //(fromNode.individualMStarPlanBases[agentIndex] != null &&
+            // this.mstarPlanBasesToTheirPlans[fromNode.individualMStarPlanBases[agentIndex]][agentIndex] == null); // Parent plan was abandoned. Imagine a backpropagation happened.
+
             if (!agentInCollisionSet) // Only one move allowed
             {
                 bool hasPlan = true;
@@ -897,12 +897,12 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
                 int collidingAgentIndex = collidingWith[0];
 
                 bool otherAgentInColSet = fromNode.CollisionSets.IsSingle(collidingAgentIndex);
-                                            //fromNode.currentCollisionSet.Contains(collidingAgentIndex);// ||
-                                            //(fromNode.individualMStarPlanBases[collidingAgentIndex] != null &&
-                                            //this.mstarPlanBasesToTheirPlans[fromNode.individualMStarPlanBases[collidingAgentIndex]][collidingAgentIndex] == null); // Parent plan was abandoned;
+                //fromNode.currentCollisionSet.Contains(collidingAgentIndex);// ||
+                //(fromNode.individualMStarPlanBases[collidingAgentIndex] != null &&
+                //this.mstarPlanBasesToTheirPlans[fromNode.individualMStarPlanBases[collidingAgentIndex]][collidingAgentIndex] == null); // Parent plan was abandoned;
 
                 // Check if one of the colliding agents isn't in the collision set yet
-                if (!agentInCollisionSet || 
+                if (!agentInCollisionSet ||
                     !otherAgentInColSet)
                 {
                     if (this.debug)
@@ -969,7 +969,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
             // Check if the proposed move collides with moves already made
             collision = possibleMove.IsColliding(currentMoves);
         }
-                
+
         return !collision;
     }
 
@@ -1119,7 +1119,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
                     //inClosedList.collisionSets.CopyUnions(currentNode.collisionSets); // Not necessary - currentNode has no unions yet
                     currentNode.CollisionSets = inClosedList.CollisionSets;
                     RMStarCollisionBackPropagation(currentNode.CollisionSets, currentNode.PrevStep); // The collision sets are information about the future,
-                                                                                                        // not the past, so they should 
+                                                                                                     // not the past, so they should 
                 }
 
                 // Since the nodes are equal, give them both the max of their H
@@ -1257,7 +1257,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
     //    {
     //        Debug.WriteLine("Planning for agent index: " + agentIndex + " in node: " + node);
     //    }
-            
+
     //    newConstraints = this.mstarPlanBasesToTheirConstraints[node][agentIndex];
     //    CbsConstraint newConstraint = new CbsConstraint(conflict, this.instance, agentA);
     //    newConstraints.Add(newConstraint);
@@ -1271,7 +1271,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
     //            Debug.WriteLine(constraint.ToString());
     //        }
     //    }
-            
+
     //    oldMaxCost = this.maxCost;
     //    //this.instance.parameters[IndependenceDetection.MAXIMUM_COST_KEY] = this.mstarPlanBasesToTheirPlans[node][agentIndex].GetSize() - 1;
     //    this.instance.parameters[IndependenceDetection.MAXIMUM_COST_KEY] = node.individualMStarPlans[agentIndex].GetSize() - 1;

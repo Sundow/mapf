@@ -15,7 +15,7 @@ class A_Star_MDDs : IConflictReporting
     private readonly Dictionary<A_Star_MDDs_Node, A_Star_MDDs_Node> _closedList = [];
     private readonly Stopwatch _stopwatch;
 
-    private readonly SortedSet<A_Star_MDDs_Node> _openList = new( new A_Star_MDDs_Node.Comparer() );
+    private readonly SortedSet<A_Star_MDDs_Node> _openList = new(new A_Star_MDDs_Node.Comparer());
 
     public int Expanded { get; private set; } = 0;
     public int Generated { get; private set; } = 0;
@@ -37,7 +37,7 @@ class A_Star_MDDs : IConflictReporting
         _openList.Add(root);
         _closedList.Add(root, root); // There will never be a hit. This is only done for consistancy
     }
-       
+
     public SinglePlan[] Solve()
     {
         A_Star_MDDs_Node currentNode;
@@ -113,7 +113,7 @@ class A_Star_MDDs : IConflictReporting
             foreach (var kvp in child.Prev.ConflictTimes)
                 child.ConflictTimes[kvp.Key] = [.. kvp.Value];
             child.IncrementConflictCounts(_cat);  // We're counting conflicts along the entire path, so the parent's conflicts count
-                                                    // is added to the child's.
+                                                  // is added to the child's.
 
             bool was_closed = _closedList.ContainsKey(child);
             if (was_closed)
@@ -197,7 +197,7 @@ class A_Star_MDDs : IConflictReporting
                 generated.Add(childNode);
             }
         }
-            
+
         return generated;
     }
 
@@ -213,7 +213,7 @@ class A_Star_MDDs : IConflictReporting
     /// </summary>
     /// <returns>Map each external agent to a list of times the solution has a conflict with theirs</returns>
     public Dictionary<int, List<int>> GetConflictTimes() => _conflictTimes;
-    
+
     public void Expand(A_Star_MDDs_Expander currentNode)
     {
         while (true)
@@ -280,9 +280,9 @@ class A_Star_MDDs : IConflictReporting
         }
         return ans;
     }
-        
+
     private bool CheckIfLegal(MDDNode to1, MDDNode to2) => to1.move.IsColliding(to2.move) == false;
-        
+
     private bool IsLegalMove(A_Star_MDDs_Node to)
     {
         if (to == null)
@@ -291,7 +291,7 @@ class A_Star_MDDs : IConflictReporting
             return true;
         for (int i = 0; i < _problem.Length; i++)
         {
-            for (int j = i+1; j < to.AllSteps.Length; j++)
+            for (int j = i + 1; j < to.AllSteps.Length; j++)
             {
                 if (CheckIfLegal(to.AllSteps[i], to.AllSteps[j]) == false)
                     return false;
@@ -415,9 +415,9 @@ class A_Star_MDDs_Node
         for (int i = 0; i < AllSteps[mddIndex].children.Count; i++)
         {
             if (_singleAgentDeltaConflictCounts[mddIndex][i] > remainingTargetDeltaConflictCount) // Small optimization - no need to make the recursive
-                                                                                                // call just to request a negative target from it and
-                                                                                                // get false (because we assume the heuristic function
-                                                                                                // is consistent)
+                                                                                                  // call just to request a negative target from it and
+                                                                                                  // get false (because we assume the heuristic function
+                                                                                                  // is consistent)
                 continue;
             if (existsChildForConflictCount(mddIndex + 1,
                                             (byte)(remainingTargetDeltaConflictCount - _singleAgentDeltaConflictCounts[mddIndex][i])))
@@ -482,12 +482,12 @@ class A_Star_MDDs_Node
         for (int i = 0; i < _conflictCountLookup.Length; i++)
         {
             _conflictCountLookup[i] = new sbyte[_maxDeltaConflictCount + 1];  // Towards the last agents most of the row will be wasted (the last one can do delta F of 0 or 1),
-                                                                                    // but it's easier than fiddling with array sizes
+                                                                              // but it's easier than fiddling with array sizes
         }
     }
 
     public A_Star_MDDs_Node(MDDNode[] allSteps, A_Star_MDDs_Node prevStep)
-    { 
+    {
         AllSteps = allSteps;
         Prev = prevStep;
         CurrentMoves = null;  // All non-intermediate nodes have currentMoves == null
@@ -529,12 +529,12 @@ class A_Star_MDDs_Node
         TargetDeltaConflictCount = cpy.TargetDeltaConflictCount;  // Just to ease debugging
         RemainingDeltaConflictCount = cpy.RemainingDeltaConflictCount;
         _singleAgentDeltaConflictCounts = cpy._singleAgentDeltaConflictCounts; // For the UpdateRemainingDeltaConflictCount call on temporary nodes.
-                                                                                // Notice that after an agent is moved its row won't be up-to-date.
+                                                                               // Notice that after an agent is moved its row won't be up-to-date.
         _conflictCountLookup = cpy._conflictCountLookup; // For the hasChildrenForCurrentDeltaConflictCount call on temporary nodes.
-                                                        // Notice that after an agent is moved, all rows up to and including the one of the agent that moved
-                                                        // won't be up-to-date.
+                                                         // Notice that after an agent is moved, all rows up to and including the one of the agent that moved
+                                                         // won't be up-to-date.
         _maxDeltaConflictCount = cpy._maxDeltaConflictCount; // Not necessarily achievable after some of the agents moved.
-                                                            // The above is OK because we won't be using data for agents that already moved.
+                                                             // The above is OK because we won't be using data for agents that already moved.
     }
 
     /// <summary>

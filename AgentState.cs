@@ -35,7 +35,7 @@ public class AgentState
 
     public AgentState(int startX, int startY, int goalX, int goalY, int agentId)
         : this(startX, startY, new Agent(goalX, goalY, agentId))
-    {}
+    { }
 
     public AgentState(AgentState copy)
     {
@@ -115,7 +115,7 @@ public class AgentState
         if (AgentState.EquivalenceOverDifferentTimes)
         {
             return Agent.Equals(that.Agent) &&
-                    LastMove.X == that.LastMove.X && 
+                    LastMove.X == that.LastMove.X &&
                     LastMove.Y == that.LastMove.Y; // Ignoring the time and the direction
         }
         else

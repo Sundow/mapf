@@ -269,7 +269,7 @@ public class Plan
             List<Move> step = GetLocationsAt(i);
             foreach (Move move in step)
             {
-                addTo.Add(new TimedMove(move,i));
+                addTo.Add(new TimedMove(move, i));
             }
         }
         return addTo;
@@ -467,8 +467,8 @@ public class SinglePlan
         Move otherLocation = otherPlan.GetLocationAt(time);
 
         if (thisLocation.IsColliding(otherLocation) == true) // IsColliding isn't virtual,
-                                                                // so it doesn't matter whether the moves are actually TimedMoves
-                                                                // with incorrect time
+                                                             // so it doesn't matter whether the moves are actually TimedMoves
+                                                             // with incorrect time
             return true;
 
         return false;

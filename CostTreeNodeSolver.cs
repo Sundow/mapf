@@ -199,7 +199,7 @@ class CostTreeNodeSolverOldMatching : CostTreeNodeSolver
     public CostTreeNodeSolverOldMatching(ProblemInstance problem, CostTreeNode costNode, Stopwatch stopwatch, CostTreeSearchSolver solver,
                                             int syncSize, ISet<TimedMove> reserved)
         : base(problem, costNode, stopwatch, solver, reserved) { this.syncSize = syncSize; }
-        
+
     public void Setup(CostTreeNode costNode, int syncSize, ISet<TimedMove> reserved)
     {
         base.Setup(costNode, reserved);
@@ -221,7 +221,7 @@ class CostTreeNodeSolverOldMatching : CostTreeNodeSolver
 
         this.solver.survivedPruningHL++;
         A_Star_MDDs findSolution = new(allMDDs, stopwatch, CAT);
-            
+
         SinglePlan[] ans = findSolution.Solve();
         this.generated = findSolution.Generated;
         this.expanded = findSolution.Expanded;
@@ -366,7 +366,7 @@ class CostTreeNodeSolverKSimpleMatching : CostTreeNodeSolver
                     for (int t = j + 1; t < allMDDs.Length - 1; t++)
                     {
                         for (int m = t + 1; m < allMDDs.Length; m++)
-                        {  
+                        {
                             match[0] = allMDDs[i];
                             match[1] = allMDDs[j];
                             match[2] = allMDDs[t];

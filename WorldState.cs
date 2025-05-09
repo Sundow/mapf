@@ -138,8 +138,8 @@ public class WorldState : IHeuristicSearchNode
     public WorldState(AgentState[] allAgentsState, List<uint> agentIndicesToCopy)
         // Copy specified agents only
         : this(agentIndicesToCopy.Select(index => new AgentState(allAgentsState[index])).ToArray())
-    {}
-        
+    { }
+
     public bool GoalTest()
     {
         // Check if this is a generalised goal node and its plan is long enough.
@@ -151,13 +151,13 @@ public class WorldState : IHeuristicSearchNode
             {
                 if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
                 {
-	                if (singlePlans.Sum(plan => plan.GetCost()) >= MinGoalCost)
+                    if (singlePlans.Sum(plan => plan.GetCost()) >= MinGoalCost)
                         return true;
                 }
                 else if (Constants.costFunction == Constants.CostFunction.MAKESPAN || Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
                 {
                     if (singlePlans.Max(plan => plan.GetCost()) >= MinGoalCost)
-    	                return true;
+                        return true;
                 }
                 else
                     throw new Exception("Unsupported cost function");
@@ -171,9 +171,9 @@ public class WorldState : IHeuristicSearchNode
             return false;
 
         return H == 0; // This assumes the heuristic is consistent,
-                            // or at least has the property of consistent heuristics that only the goal has h==0.
-                            // SIC really is a consistent heuristic, so this is fine for now.
-                            // TODO: Implement a proper goal test and use it when h==0.
+                       // or at least has the property of consistent heuristics that only the goal has h==0.
+                       // SIC really is a consistent heuristic, so this is fine for now.
+                       // TODO: Implement a proper goal test and use it when h==0.
     }
 
     protected SinglePlan[] singlePlans;
@@ -410,7 +410,7 @@ public class WorldState : IHeuristicSearchNode
     {
         for (int i = 0; i < AllAgentsState.Length; i++)
         {
-            for (int j = i+1; j < AllAgentsState.Length; j++)
+            for (int j = i + 1; j < AllAgentsState.Length; j++)
             {
                 // Internal conflict
                 if (AllAgentsState[i].LastMove.IsColliding(AllAgentsState[j].LastMove))
@@ -430,7 +430,7 @@ public class WorldState : IHeuristicSearchNode
         int ans = 0;
         unchecked
         {
-            for (int i = 0 ; i < AllAgentsState.Length; i++)
+            for (int i = 0; i < AllAgentsState.Length; i++)
             {
                 ans += AllAgentsState[i].GetHashCode() * Constants.PRIMES_FOR_HASHING[i % Constants.PRIMES_FOR_HASHING.Length];
             }
@@ -470,16 +470,16 @@ public class WorldState : IHeuristicSearchNode
         else if (CAT.AvoidanceGoal == AvoidanceGoal.MINIMIZE_CONFLICTING_GROUPS)
             _primaryTieBreaker = ConflictCounts.Keys.Count;
         else if (CAT.AvoidanceGoal == AvoidanceGoal.MINIMIZE_CONFLICTING_GROUPS_THEN_CONFLICTS)
-            // For CBS, minimizes the number of conflicting groups and then the number of conflicts with them
+        // For CBS, minimizes the number of conflicting groups and then the number of conflicts with them
         {
             _primaryTieBreaker = ConflictCounts.Keys.Count;
             _secondaryTieBreaker = ConflictCounts.Sum(pair => pair.Value);
         }
         else if (CAT.AvoidanceGoal == AvoidanceGoal.MINIMIZE_LARGEST_CONFLICTING_GROUP_THEN_NUMBER_OF_SUCH_GROUPS)
-            // For ID, minimizes the size of the largest group we conflict with and then 
-            // the number of conflicting groups with that size. The idea was to minimize conflicts that matter, and conflicts with
-            // non-max-size groups don't.
-            // Kept mostly for reference.
+        // For ID, minimizes the size of the largest group we conflict with and then 
+        // the number of conflicting groups with that size. The idea was to minimize conflicts that matter, and conflicts with
+        // non-max-size groups don't.
+        // Kept mostly for reference.
         {
             if (ConflictCounts.Count != 0)
             {

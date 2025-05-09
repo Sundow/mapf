@@ -66,7 +66,7 @@ public class CbsNode : IHeuristicSearchNode
     private ushort _depth;
     public ushort[] AgentsGroupAssignment { get; }
     public ushort ReplanSize { get; private set; }
-    public enum ExpansionState: byte
+    public enum ExpansionState : byte
     {
         NOT_EXPANDED = 0,
         DEFERRED,
@@ -151,7 +151,7 @@ public class CbsNode : IHeuristicSearchNode
         _constraint = null;
         _solver = solver;
         _singleAgentSolver = singleAgentSolver;
-        MinimumVertexCover = (int) ConflictGraph.MinVertexCover.NOT_SET;
+        MinimumVertexCover = (int)ConflictGraph.MinVertexCover.NOT_SET;
     }
 
     /// <summary>
@@ -203,7 +203,7 @@ public class CbsNode : IHeuristicSearchNode
                 ConflictTimesPerAgent[i][kvp.Key] = [.. kvp.Value];
         }
         AgentsGroupAssignment = parent.AgentsGroupAssignment.ToArray();
-        
+
         for (int i = 0; i < SingleAgentPlans.Length; i++)
         {
             NewPlans[i] = false;
@@ -211,7 +211,7 @@ public class CbsNode : IHeuristicSearchNode
         ISet<int> group = GetGroup(agentToReplan);
         foreach (int i in group)
             NewPlans[i] = true;
-        
+
         AgentNumToIndex = parent.AgentNumToIndex;
         Prev = parent;
         _constraint = newConstraint;
@@ -221,7 +221,7 @@ public class CbsNode : IHeuristicSearchNode
         ReplanSize = 1;
         _solver = parent._solver;
         _singleAgentSolver = parent._singleAgentSolver;
-        MinimumVertexCover = (int) ConflictGraph.MinVertexCover.NOT_SET;
+        MinimumVertexCover = (int)ConflictGraph.MinVertexCover.NOT_SET;
     }
 
     /// <summary>
@@ -259,7 +259,7 @@ public class CbsNode : IHeuristicSearchNode
         _solver = parent._solver;
         _singleAgentSolver = parent._singleAgentSolver;
         CBS = parent.CBS;
-            
+
         MergeGroups(mergeGroupA, mergeGroupB);
 
         for (int i = 0; i < SingleAgentPlans.Length; i++)
@@ -270,7 +270,7 @@ public class CbsNode : IHeuristicSearchNode
         foreach (int i in mergedGroup)
             NewPlans[i] = true;
 
-        MinimumVertexCover = (int) ConflictGraph.MinVertexCover.NOT_SET;
+        MinimumVertexCover = (int)ConflictGraph.MinVertexCover.NOT_SET;
     }
 
     /// <summary>
@@ -312,9 +312,9 @@ public class CbsNode : IHeuristicSearchNode
             ((HashSet_U<CbsConstraint>)constraints).Join(newConstraints);
         }
 
-            
+
         ISet<CbsConstraint> positiveConstraints = null;
-        Dictionary<int,int> agentsWithPositiveConstraints = null;
+        Dictionary<int, int> agentsWithPositiveConstraints = null;
         HashSet<CbsConstraint> newPositiveConstraints = null;
         if (CBS.DoMalte)
             newPositiveConstraints = GetPositiveConstraints();
@@ -348,7 +348,7 @@ public class CbsNode : IHeuristicSearchNode
         for (int i = 0; i < AgentsGroupAssignment.Length; i++)
         {
             if (subGroups[AgentsGroupAssignment[i]] == null)
-                subGroups[AgentsGroupAssignment[i]] = [ problem.Agents[i] ];
+                subGroups[AgentsGroupAssignment[i]] = [problem.Agents[i]];
             else
                 subGroups[AgentsGroupAssignment[i]].Add(problem.Agents[i]);
         }
@@ -365,7 +365,7 @@ public class CbsNode : IHeuristicSearchNode
             bool agentGroupHasMustConstraints = (agentsWithPositiveConstraints != null) && subGroup.Any<AgentState>(state => agentsWithPositiveConstraints.ContainsKey(state.Agent.agentNum));
 
             // Solve for a single agent:
-            if (agentGroupHasConstraints == false  &&
+            if (agentGroupHasConstraints == false &&
                 agentGroupHasMustConstraints == false &&
                 subGroup.Count == 1) // No constraints on this agent. Shortcut available (that doesn't consider the CAT, though!).
             {
@@ -485,7 +485,7 @@ public class CbsNode : IHeuristicSearchNode
             }
             else
                 CAT = internalCAT;
-                
+
 
             HashSet<CbsConstraint> newConstraints = GetConstraints();
             if (CBS.ExternalConstraints != null && CBS.ExternalConstraints.Count != 0)
@@ -618,7 +618,7 @@ public class CbsNode : IHeuristicSearchNode
             int i = AgentNumToIndex[agentNumAndAgentNum.Key];
             if (CAT != null)
                 UpdateAtGoalConflictCounts(i, CAT);
-                // Can't use the null coalescing operator because it requires the operands be of the same type :(
+            // Can't use the null coalescing operator because it requires the operands be of the same type :(
             else
                 UpdateAtGoalConflictCounts(i, internalCAT);
         }
@@ -650,15 +650,15 @@ public class CbsNode : IHeuristicSearchNode
         if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
         {
             G = (ushort)Math.Max(SingleAgentCosts.Sum(), G); // Conserve g from partial 
-                                                                                // expansion if it's higher
-                                                                                // (only happens when shuffling a partially expanded node)
+                                                             // expansion if it's higher
+                                                             // (only happens when shuffling a partially expanded node)
         }
         else if (Constants.costFunction == Constants.CostFunction.MAKESPAN ||
             Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
         {
             G = (ushort)Math.Max(SingleAgentCosts.Max(), G); // Conserve g from partial
-                                                                                // expansion if it's higher
-                                                                                // (only happens when shuffling a partially expanded node)
+                                                             // expansion if it's higher
+                                                             // (only happens when shuffling a partially expanded node)
         }
         else
             throw new NotImplementedException($"Unsupported cost function {Constants.costFunction}");
@@ -852,12 +852,12 @@ public class CbsNode : IHeuristicSearchNode
             }
 
             int minReplansToSolve = vertexCover.Count / 2; // We have a 2-approximation of the size of the cover -
-                                                            // half that is at least half the value we're trying to approximate.
-                                                            // (The size of the approximation is always even)
-            //if (cbs.debug)
-            //    Debug.WriteLine("min replans lower estimate: " + minReplansToSolve);
+                                                           // half that is at least half the value we're trying to approximate.
+                                                           // (The size of the approximation is always even)
+                                                           //if (cbs.debug)
+                                                           //    Debug.WriteLine("min replans lower estimate: " + minReplansToSolve);
             if (CBS.MergeThreshold != -1) // Merges possible, account for them
-                                                // This assumes the current merging strategy is used.
+                                          // This assumes the current merging strategy is used.
             {
                 if (CBS.GetType() == typeof(CBS))
                 {
@@ -1011,7 +1011,7 @@ public class CbsNode : IHeuristicSearchNode
             // Assumes mergeThreshold == -1.
             _nextConflicts = GetConflictsCardinalFirstUsingMdd().GetEnumerator();
             bool hasConflict = _nextConflicts.MoveNext(); // This node isn't a goal node so this is expected to return true -
-                                                                // a conflict should be found
+                                                          // a conflict should be found
             if (hasConflict == false)
             {
                 DebugPrint();
@@ -1023,7 +1023,7 @@ public class CbsNode : IHeuristicSearchNode
         {
             _nextConflicts = GetConflictsNoOrder().GetEnumerator();
             bool hasConflict = _nextConflicts.MoveNext(); // This node isn't a goal node so this is expected to return true -
-                                                                // a conflict should be found
+                                                          // a conflict should be found
             if (hasConflict == false)
             {
                 DebugPrint();
@@ -1037,7 +1037,7 @@ public class CbsNode : IHeuristicSearchNode
         {
             _nextConflicts = GetConflictsCardinalFirstUsingMddMergeFirstByNewPolicy().GetEnumerator();
             bool hasConflict = _nextConflicts.MoveNext(); // This node isn't a goal node so this is expected to return true -
-                                                              // a conflict should be found
+                                                          // a conflict should be found
             if (hasConflict == false)
             {
                 DebugPrint();
@@ -1227,10 +1227,10 @@ public class CbsNode : IHeuristicSearchNode
         Queue<(int agentAIndex, int agentBIndex, int conflictTime)> PossiblyCardinalBothCannotBuildMdd = new(TotalConflictsBetweenInternalAgents);
         Queue<(int agentAIndex, int agentBIndex, int conflictTime)> PossiblyCardinalFirstCanBuildMdd = new(TotalConflictsBetweenInternalAgents); // Going over these just get the first element, build its MDD and 
         Queue<int> AgentIndexesWaitingToCheckTheirConflictsForCardinality = new(Enumerable.Range(0, SingleAgentPlans.Length)); // Initially go over all conflicting agents.
-                                                                                                                                        // TODO: this will also go over non-conflicting agents harmlessly. Is there an easy way to get a list of agents that have conflicts?
-        // Positively cardinal conflicts are just yielded immediately
-        // Conflicting agents are only entered into a queue once. Only if the conflicting agent with the larger index
-        // can have an MDD built and the one with the lower can't, a pair of conflicting agents is entered in reverse.
+                                                                                                                               // TODO: this will also go over non-conflicting agents harmlessly. Is there an easy way to get a list of agents that have conflicts?
+                                                                                                                               // Positively cardinal conflicts are just yielded immediately
+                                                                                                                               // Conflicting agents are only entered into a queue once. Only if the conflicting agent with the larger index
+                                                                                                                               // can have an MDD built and the one with the lower can't, a pair of conflicting agents is entered in reverse.
 
         bool allowAgentOrderFlip = true; // Needed when rechecking agents to signal that we shouldn't 
                                          // rely on the other end to check a conflict
@@ -1326,10 +1326,10 @@ public class CbsNode : IHeuristicSearchNode
                                         cardinal.willCostIncreaseForAgentB = CbsConflict.WillCostIncrease.YES;
                                         H = Math.Max(H, 1);  // The children's cost will be at least 1 more than this node's cost
                                         nextConflictCouldBeCardinal = false;  // We don't want CBS to cycle conflicts after this one.
-                                                                                   // This could happen if the conflict is resolved via a merge
-                                                                                   // and the conflicting agents already have some constraints
-                                                                                   // to avoid each other that have already increased the cost
-                                                                                   // of their paths
+                                                                              // This could happen if the conflict is resolved via a merge
+                                                                              // and the conflicting agents already have some constraints
+                                                                              // to avoid each other that have already increased the cost
+                                                                              // of their paths
                                         yield return cardinal;
                                         continue;
                                     }
@@ -1344,7 +1344,7 @@ public class CbsNode : IHeuristicSearchNode
                                 continue;
                             }
                             else // No MDD and can't build one and other can't build one either (already checked for the latter case above)
-                                    // When re-checking an agent's conflicts we'll never get here because we only recheck agents that can build an MDD
+                                 // When re-checking an agent's conflicts we'll never get here because we only recheck agents that can build an MDD
                             {
                                 PossiblyCardinalBothCannotBuildMdd.Enqueue((i, conflictingAgentIndex, conflictTime));
                                 continue;
@@ -1355,7 +1355,7 @@ public class CbsNode : IHeuristicSearchNode
             }
 
             allowAgentOrderFlip = false;  // We've flipped all we needed above
-                
+
             // 2.
             if (PossiblyCardinalFirstHasMddSecondDoesNotButCan.Count != 0)
             {
@@ -1411,7 +1411,7 @@ public class CbsNode : IHeuristicSearchNode
                 AgentIndexesWaitingToCheckTheirConflictsForCardinality.Enqueue(agentToBuildAnMddFor);
                 continue;
             }
-                
+
             break; // No more queues to loot
         }
 
@@ -1591,7 +1591,7 @@ public class CbsNode : IHeuristicSearchNode
                                 {
                                     if (shouldMergeThisPair)
                                         NonCardinalShouldMerge.Enqueue((i, conflictingAgentIndex, conflictTime));  // No semi-cardinal conflicts possible
-                                                                                                                          // for nodes with a single child
+                                                                                                                   // for nodes with a single child
                                     else
                                         NotCardinalMaybeSemi.Enqueue((i, conflictingAgentIndex, conflictTime));
                                     continue;
@@ -2308,10 +2308,10 @@ public class CbsNode : IHeuristicSearchNode
         // didn't change and we added no constraints.
 
         ChooseConflict();  // child probably hasn't chosen a conflict (and will never get a chance to),
-                                // need to choose the new conflict to work on.
-                                // (if child somehow had a conflict already, ChooseConflict does nothing)
-                                // We can't just continue the node's conflict iteration since
-                                // some conflicts may have been eliminated by the new plans
+                           // need to choose the new conflict to work on.
+                           // (if child somehow had a conflict already, ChooseConflict does nothing)
+                           // We can't just continue the node's conflict iteration since
+                           // some conflicts may have been eliminated by the new plans
     }
 
     /// <summary>
@@ -2346,7 +2346,7 @@ public class CbsNode : IHeuristicSearchNode
     /// </summary>
     /// <param name="obj"></param>
     /// <returns></returns>
-    public override bool Equals(object obj) 
+    public override bool Equals(object obj)
     {
         if (obj == null)
             return false;
@@ -2399,7 +2399,7 @@ public class CbsNode : IHeuristicSearchNode
             return -1;
         if (TotalConflictsWithExternalAgents > other.TotalConflictsWithExternalAgents)
             return 1;
-            
+
         // Prefer goal nodes. The elaborate form is to keep the comparison consistent. Without it goalA<goalB and also goalB<goalA.
         if (GoalTest() == true && other.GoalTest() == false)
             return -1;
@@ -2490,14 +2490,14 @@ public class CbsNode : IHeuristicSearchNode
         {
             if (current._constraint != null && // Last check not enough if "surprise merges" happen (merges taken from adopted child)
                 current.Prev.Conflict != null && // Can only happen for temporary lookahead nodes that were created and then
-                                                    // later the parent adopted a goal node
+                                                 // later the parent adopted a goal node
                 AgentsGroupAssignment[current.Prev.Conflict.agentAIndex] !=
                 AgentsGroupAssignment[current.Prev.Conflict.agentBIndex]) // Ignore constraints that deal with conflicts between
-                                                                                // agents that were later merged. They're irrelevant
-                                                                                // since merging fixes all conflicts between merged agents.
-                                                                                // Nodes that only differ in such irrelevant conflicts will have the same single agent paths.
-                                                                                // Dereferencing current.prev is safe because current isn't the root.
-                                                                                // Also, merging creates a non-root node with a null constraint, and this helps avoid adding the null to the answer.
+                                                                          // agents that were later merged. They're irrelevant
+                                                                          // since merging fixes all conflicts between merged agents.
+                                                                          // Nodes that only differ in such irrelevant conflicts will have the same single agent paths.
+                                                                          // Dereferencing current.prev is safe because current isn't the root.
+                                                                          // Also, merging creates a non-root node with a null constraint, and this helps avoid adding the null to the answer.
                 constraints.Add(current._constraint);
             current = current.Prev;
         }
@@ -2735,7 +2735,7 @@ public class CbsNode : IHeuristicSearchNode
 
         for (int i = 0; i < AgentsGroupAssignment.Length; i++)
             groupSizes[i] = counts[AgentsGroupAssignment[i]];
-            
+
         return groupSizes;
     }
 
@@ -2838,7 +2838,7 @@ public class CbsNode : IHeuristicSearchNode
         for (int i = moves.Count - 2; i >= 0; i--)
         {
             if (moves[i].Equals(goal) == false) // Note the move that gets to the goal is different to the move that first waits in it.
-                return  i + 1;
+                return i + 1;
         }
         return 0;
     }
@@ -2859,7 +2859,8 @@ public class CbsNode : IHeuristicSearchNode
 
     private bool isGoal = false;
 
-    public bool GoalTest() {
+    public bool GoalTest()
+    {
         if (G < CBS.MinSolutionCost)
             return false;
         return isGoal;

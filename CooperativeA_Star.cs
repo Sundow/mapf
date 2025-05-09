@@ -35,7 +35,7 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
 
     private static readonly AgentState.Comparer _comparer = new();
 
-    public CooperativeAStar() {}
+    public CooperativeAStar() { }
 
     public string GetName() => "CA*";
 
@@ -86,7 +86,7 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
     public override string ToString() => GetName();
 
     public int GetSolutionDepth() => _totalcost - _initialEstimate;
-        
+
     /// <summary>
     /// Prints statistics of a single run to the given output. 
     /// </summary>
@@ -106,7 +106,7 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
         {
             if (!singleAgentAStar(agent))
             {
-                _totalcost = (int) Constants.SpecialCosts.NO_SOLUTION_COST;
+                _totalcost = (int)Constants.SpecialCosts.NO_SOLUTION_COST;
                 return false;
             }
         }
@@ -117,7 +117,7 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
     {
         if (!singleAgentAStar(_allAgentsState[index]))
         {
-            _totalcost = (int) Constants.SpecialCosts.NO_SOLUTION_COST;
+            _totalcost = (int)Constants.SpecialCosts.NO_SOLUTION_COST;
             return false;
         }
         return true;
@@ -126,7 +126,7 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
     private bool singleAgentAStar(AgentState agent)
     {
         AgentState.EquivalenceOverDifferentTimes = false;
-        PriorityQueue<AgentState> openList = new( _comparer );
+        PriorityQueue<AgentState> openList = new(_comparer);
         HashSet<AgentState> closedList = [];
         agent.H = _problem.GetSingleAgentOptimalCost(agent);
         openList.Push(agent);
@@ -145,7 +145,7 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
             if (node.H == 0)
             {
                 bool valid = true;
-                for (int i = node.LastMove.Time ; i <= _maxPathCostSoFar; i++)
+                for (int i = node.LastMove.Time; i <= _maxPathCostSoFar; i++)
                 {
                     queryTimedMove.Setup(node.LastMove.X, node.LastMove.Y, Direction.NO_DIRECTION, i);
                     if (_reservationTable.Contains(queryTimedMove))

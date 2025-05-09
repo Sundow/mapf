@@ -49,7 +49,7 @@ class WorldStateForPartialExpansion : WorldState
     /// <param name="minDepth"></param>
     /// <param name="minCost"></param>
     public WorldStateForPartialExpansion(AgentState[] allAgentState, int minDepth = -1,
-                                            int minCost = -1, MDDNode mddNode = null):
+                                            int minCost = -1, MDDNode mddNode = null) :
         base(allAgentState, minDepth, minCost, mddNode)
     {
         this.alreadyExpanded = false;
@@ -70,10 +70,10 @@ class WorldStateForPartialExpansion : WorldState
         // For intermediate nodes created during expansion (fully expanded nodes have these fields recalculated when they're expanded)
         remainingDeltaF = cpy.remainingDeltaF;
         singleAgentDeltaFs = cpy.singleAgentDeltaFs; // For the UpdateRemainingDeltaF call on temporary nodes.
-                                                        // Notice that after an agent is moved its row won't be up-to-date.
+                                                     // Notice that after an agent is moved its row won't be up-to-date.
         fLookup = cpy.fLookup; // For the hasChildrenForCurrentDeltaF call on temporary nodes.
-                                // Notice that after an agent is moved, all rows up to and including the one of the agent that moved
-                                // won't be up-to-date.
+                               // Notice that after an agent is moved, all rows up to and including the one of the agent that moved
+                               // won't be up-to-date.
         maxDeltaF = cpy.maxDeltaF; // Not necessarily achievable after some of the agents moved.
         // The above is OK because we won't be using data for agents that already moved.
     }
@@ -121,14 +121,14 @@ class WorldStateForPartialExpansion : WorldState
         for (int i = 0; i < AllAgentsState.Length; i++)
         {
             hBefore = problem.GetSingleAgentOptimalCost(AllAgentsState[i]);
-                
+
             int singleAgentMaxLegalDeltaF = -1;
 
             foreach (TimedMove check in AllAgentsState[i].LastMove.GetNextMoves())
             {
                 if (isValid(check, noMoves, this.Makespan + 1, i, this, this) == false)  // Is this move by itself invalid because of constraints or obstacles
                 {
-                        singleAgentDeltaFs[i][(int)check.Direction] = byte.MaxValue;
+                    singleAgentDeltaFs[i][(int)check.Direction] = byte.MaxValue;
                 }
                 else
                 {
@@ -160,14 +160,14 @@ class WorldStateForPartialExpansion : WorldState
                 break;
             }
 
-            this.maxDeltaF += (byte) singleAgentMaxLegalDeltaF;
+            this.maxDeltaF += (byte)singleAgentMaxLegalDeltaF;
         }
 
         fLookup = new DeltaFAchievable[AllAgentsState.Length][];
         for (int i = 0; i < fLookup.Length; i++)
         {
             fLookup[i] = new DeltaFAchievable[this.maxDeltaF + 1]; // Towards the last agents most of the row will be wasted (the last one can do delta F of 0 or 1),
-                                                                    // but it's easier than fiddling with array sizes
+                                                                   // but it's easier than fiddling with array sizes
         }
     }
 
@@ -180,7 +180,7 @@ class WorldStateForPartialExpansion : WorldState
     {
         return this.targetDeltaF <= this.maxDeltaF;
     }
-        
+
     public bool IsAlreadyExpanded()
     {
         return alreadyExpanded;
@@ -191,7 +191,7 @@ class WorldStateForPartialExpansion : WorldState
     /// </summary>
     /// <param name="agentNum"></param>
     /// <returns></returns>
-    public bool hasChildrenForCurrentDeltaF(int agentNum=0)
+    public bool hasChildrenForCurrentDeltaF(int agentNum = 0)
     {
         return existsChildForF(agentNum, this.remainingDeltaF);
     }
@@ -211,7 +211,7 @@ class WorldStateForPartialExpansion : WorldState
                 return true;
             return false;
         }
-            
+
         if (fLookup[agentNum][remainingTargetDeltaF] != DeltaFAchievable.NOT_YET_COMPUTED) // Answer known (arrays are initialized to zero).
         {
             return fLookup[agentNum][remainingTargetDeltaF] == DeltaFAchievable.YES; // Return known answer.
@@ -221,9 +221,9 @@ class WorldStateForPartialExpansion : WorldState
         for (int direction = 0; direction < Constants.NUM_ALLOWED_DIRECTIONS; direction++)
         {
             if (singleAgentDeltaFs[agentNum][direction] > remainingTargetDeltaF) // Small optimization - no need to make the recursive
-                                                                                    // call just to request a negative target from it and
-                                                                                    // get false (because we assume the heuristic function
-                                                                                    // is consistent)
+                                                                                 // call just to request a negative target from it and
+                                                                                 // get false (because we assume the heuristic function
+                                                                                 // is consistent)
                 continue;
             if (existsChildForF(agentNum + 1, (byte)(remainingTargetDeltaF - singleAgentDeltaFs[agentNum][direction])))
             {
@@ -240,7 +240,8 @@ class WorldStateForPartialExpansion : WorldState
     /// Using the data that describes its delta F potential before the move.
     /// </summary>
     /// <param name="agentIndex"></param>
-    public void UpdateRemainingDeltaF(int agentIndex) {
+    public void UpdateRemainingDeltaF(int agentIndex)
+    {
         if (this.remainingDeltaF == ushort.MaxValue)
             Trace.Assert(false,
                             $"Remaining deltaF is ushort.MaxValue, a reserved value with special meaning. agentIndex={agentIndex}");

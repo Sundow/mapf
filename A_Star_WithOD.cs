@@ -65,7 +65,7 @@ public class A_Star_WithOD : A_Star
     protected override List<WorldState> ExpandOneAgent(List<WorldState> intermediateNodes, int agentIndex)
     {
         if (this.alreadyExpanded == true)  // Necessary because after expansion, the generated nodes have an incremented agentTurn that once again equals agentIndex
-                                            // and because it's possible that a node may have valid children that aren't already in the closed list
+                                           // and because it's possible that a node may have valid children that aren't already in the closed list
             return intermediateNodes; // Do nothing to this agent
 
         WorldStateWithOD parent = (WorldStateWithOD)intermediateNodes[0];

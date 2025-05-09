@@ -76,7 +76,7 @@ public class OpenList<Item> : IAccumulatingStatisticsCsvWriter
         }
         else
         {
-            int compareRes = _comparer.Compare( item, _queue.Peek());
+            int compareRes = _comparer.Compare(item, _queue.Peek());
             if (compareRes == 1) // item is larger than the queue
             {
                 _sortedSet.Push(item);
@@ -132,7 +132,7 @@ public class OpenList<Item> : IAccumulatingStatisticsCsvWriter
     {
         bool removedFromQueue = false;
         // Remove from the queue if it's there, keeping the order in the queue.
-        for (int i = 0; i < _queue.Count; ++i )
+        for (int i = 0; i < _queue.Count; ++i)
         {
             Item temp = _queue.Dequeue();
             if (temp.Equals(item))
@@ -145,7 +145,7 @@ public class OpenList<Item> : IAccumulatingStatisticsCsvWriter
         if (removedFromQueue == true)
             return true;
 
-        return _sortedSet.Remove(item); 
+        return _sortedSet.Remove(item);
     }
 
     public virtual void OutputStatisticsHeader(TextWriter output)

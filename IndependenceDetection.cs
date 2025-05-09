@@ -45,7 +45,7 @@ class IndependenceDetection : ISolver
     /// The complete plan for all the agents that was found.
     /// </summary>
     public Plan plan;
-        
+
     protected int maxGroupSize;
     protected int minGroupSize;
     protected int accMaxGroupSize;
@@ -102,7 +102,7 @@ class IndependenceDetection : ISolver
         foreach (AgentState agentStartState in instance.Agents)
         {
             this.allGroups.AddLast(new IndependenceDetectionAgentsGroup(
-                                        this.instance,[ agentStartState ],
+                                        this.instance, [agentStartState],
                                         this.singleAgentSolver, this.groupSolver, this)
             );
             this.conflictAvoidanceTable.AgentSizes[agentStartState.Agent.agentNum] = 1;
@@ -118,12 +118,12 @@ class IndependenceDetection : ISolver
         countsOfGroupsThatConflict = new int[instance.GetNumOfAgents()];
     }
 
-        public virtual String GetName() { return $"{groupSolver.GetName()}+ID({conflictChoice} ProvideInfoToSubsolver={provideGroupCostsToSolver})"; }
+    public virtual String GetName() { return $"{groupSolver.GetName()}+ID({conflictChoice} ProvideInfoToSubsolver={provideGroupCostsToSolver})"; }
 
     /// <summary>
     /// Calculate the full plan for all the agents that has been found by the algorithm
     /// </summary>
-    public Plan CalculateJointPlan() 
+    public Plan CalculateJointPlan()
     {
         var singlePlans = new SinglePlan[this.instance.GetNumOfAgents()];
         foreach (var group in this.allGroups)
@@ -135,7 +135,7 @@ class IndependenceDetection : ISolver
                 singlePlans[agentState.Agent.agentNum] = new SinglePlan(groupPlan, i, agentState.Agent.agentNum);
                 i++;
             }
-                    
+
         }
         return new Plan(singlePlans);
     }
@@ -385,7 +385,7 @@ class IndependenceDetection : ISolver
         groupRepB = chosenConflictingGroupNum;
 
         time = this.conflictTimesPerGroup[chosenGroupNum][chosenConflictingGroupNum][0];  // Choosing the earliest conflict between them - the choice doesn't matter for ID, but this is consistent with CBS' strategy
-            
+
         IndependenceDetectionAgentsGroup groupA = null, groupB = null;
         foreach (var group in this.allGroups)
         {
@@ -591,7 +591,7 @@ class IndependenceDetection : ISolver
     /// </summary>
     /// <returns></returns>
     public IndependenceDetectionConflict FindFirstConflict()
-    { 
+    {
         // Find the longest plan among all the groups
         int maxPlanSize = this.allGroups.Max(group => group.GetPlan().GetSize());
 
@@ -604,7 +604,7 @@ class IndependenceDetection : ISolver
         }
 
         // Check in every time step that the plans do not collide
-        for (int time = 1 ; time < maxPlanSize ; time++) // Assuming no conflicts exist in time zero.
+        for (int time = 1; time < maxPlanSize; time++) // Assuming no conflicts exist in time zero.
         {
             // Check all pairs of groups for a conflict at the given time step
             foreach ((int i1, var group1) in this.allGroups.Enumerate())
@@ -638,7 +638,7 @@ class IndependenceDetection : ISolver
             allGroups.Remove(conflict.group2);
             IndependenceDetectionAgentsGroup compositeGroup = this.JoinGroups(conflict);
             ++merges;
-                
+
             // Solve composite group with the subsolver
             bool solved = compositeGroup.Solve(stopwatch, conflictAvoidanceTable);
             if (solved == false)
@@ -705,7 +705,7 @@ class IndependenceDetection : ISolver
 
             // Try to resolve the current conflict by re-planning one of the groups' path
             if (this.resolutionAttemptedFirstGroup.Contains(conflict) == false)  // We haven't already tried to resolve this conflict
-                                                                                    // without merging the groups by replanning the first group's path
+                                                                                 // without merging the groups by replanning the first group's path
             {
                 // Prevent trying to resolve this conflict this way again
                 this.resolutionAttemptedFirstGroup.Add(conflict);
@@ -713,8 +713,8 @@ class IndependenceDetection : ISolver
                 // Add the plan of group2 to the illegal moves table and re-plan group1 with equal cost
                 if ((conflict.time < conflict.group1.GetPlan().GetSize() - 1) ||
                     (conflict.group1.Size() > 1))  // Otherwise the conflict is while a single agent
-                                                    // is at its goal, no chance of an alternate path
-                                                    // with the same cost that avoids the conflict - TODO: If it's an edge conflict while entering the goal it may be resolvable
+                                                   // is at its goal, no chance of an alternate path
+                                                   // with the same cost that avoids the conflict - TODO: If it's an edge conflict while entering the goal it may be resolvable
                 {
                     if (this.debug)
                     {
@@ -774,9 +774,9 @@ class IndependenceDetection : ISolver
                                         "we've already tried to in the past.");
                 }
             }
-                
+
             if (this.resolutionAttemptedSecondGroup.Contains(conflict) == false)  // We haven't already tried to resolve this conflict
-                                                                                    // without merging the groups by replanning the second group's path
+                                                                                  // without merging the groups by replanning the second group's path
             {
                 // Prevent trying to resolve this conflict this way again
                 this.resolutionAttemptedSecondGroup.Add(conflict);
@@ -817,18 +817,19 @@ class IndependenceDetection : ISolver
                             totalCost = conflict.group2.solutionCost;  // To propagate special costs
                             return false;
                         }
-                            
+
                         conflict.group2.addGroupToCAT(conflictAvoidanceTable);
-                            
+
                         if (this.debug)
                         {
                             Debug.WriteLine($"Couldn't find an alternative path that avoids the conflict for {conflict.group2}");
                         }
                     }
 
-                        
+
                 }
-                else {
+                else
+                {
                     if (this.debug)
                     {
                         Debug.WriteLine($"Not trying to find an alternative path that avoids the conflict for {conflict.group2} because " +
@@ -1018,7 +1019,7 @@ class IndependenceDetection : ISolver
             foreach (KeyValuePair<int, int> pair in this.conflictCountsPerGroup[i])
             {
                 //if (pair.Key < i)  // Just an optimization. Would also be correct without this check.
-                                     // Not if group order is funky...
+                // Not if group order is funky...
                 {
                     this.conflictCountsPerGroup[pair.Key][i] = pair.Value; // Collisions are symmetrical, and agent "key" didn't see the route for agent "i" when planning.
                     this.conflictTimesPerGroup[pair.Key][i] = this.conflictTimesPerGroup[i][pair.Key];
@@ -1074,7 +1075,7 @@ class IndependenceDetection : ISolver
     public int GetSolutionDepth()
     {
         this.solutionDepth = this.allGroups.Sum(group => group.solutionDepth);  // TODO: Support the makespan cost function
-        return this.solutionDepth; 
+        return this.solutionDepth;
     }
     public long GetMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
 }

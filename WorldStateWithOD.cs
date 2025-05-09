@@ -23,12 +23,12 @@ public class WorldStateWithOD : WorldState
     {
         AgentTurn = 0;
     }
-        
+
     public WorldStateWithOD(WorldStateWithOD cpy) : base(cpy)
     {
         AgentTurn = cpy.AgentTurn;
     }
-        
+
     /// <summary>
     /// Used for PDB stuff only
     /// </summary>
@@ -72,14 +72,14 @@ public class WorldStateWithOD : WorldState
             singlePlans = SinglePlan.GetSinglePlans(this);
         else
             singlePlans = SinglePlan.GetSinglePlans(PrevStep);
-            // ToProblemInstance gives the last proper state as the problem to solve,
-            // with must constraints to make the solution go through the steps already
-            // taken from there.
+        // ToProblemInstance gives the last proper state as the problem to solve,
+        // with must constraints to make the solution go through the steps already
+        // taken from there.
 
         for (int i = 0; i < solution.Length; ++i)
             singlePlans[i].ContinueWith(solution[i]);
     }
-        
+
     public override string ToString()
     {
         string ans = base.ToString();
@@ -110,15 +110,15 @@ public class WorldStateWithOD : WorldState
             return false;
         var that = (WorldStateWithOD)obj;
         if (that.AgentTurn != AgentTurn)
-        // It's tempting to think that this check is enough to allow equivalence over different times,
-        // because it differentiates between a state where all agents have moved and its
-        // child where the first agent WAITed, allowing the child
-        // to be generated because it isn't a hit in the closed list.
-        // But it isn't enough.
-        // This may a partially generated node,
-        // and we may have already gotten to this specific set of agent positions,
-        // but from a different set of locations, so the allowed moves of the remaining agents
-        // that haven't already moved would be different.
+            // It's tempting to think that this check is enough to allow equivalence over different times,
+            // because it differentiates between a state where all agents have moved and its
+            // child where the first agent WAITed, allowing the child
+            // to be generated because it isn't a hit in the closed list.
+            // But it isn't enough.
+            // This may a partially generated node,
+            // and we may have already gotten to this specific set of agent positions,
+            // but from a different set of locations, so the allowed moves of the remaining agents
+            // that haven't already moved would be different.
             return false;
 
         if (AgentTurn == 0) // All agents have moved, safe to ignore direction information.
@@ -171,7 +171,7 @@ public class WorldStateWithOD : WorldState
         if (res != 0)
             return res;
 
-        if(other is not WorldStateWithOD that)
+        if (other is not WorldStateWithOD that)
             return 0;
 
         // Further tie-breaking
