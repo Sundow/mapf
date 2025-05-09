@@ -17,6 +17,9 @@
 	  <None Update="Layouts\Large %28Possible%29 - Copy.xlsx">
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </None>
+	  <None Update="Layouts\Large %28Possible%29.xlsx">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
 	  <None Update="Layouts\Layout 2025-04-23.xlsx">
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </None>
