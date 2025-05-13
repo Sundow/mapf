@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace mapf;
 
 /// <summary>
 /// A binary heap, useful for sorting data and priority queues.
 /// </summary>
-public class BinaryHeap<Item> where Item : IBinaryHeapItem
+public class BinaryHeap<Item>
 {
     // Constants
     private const int DEFAULT_SIZE = 4;
@@ -17,14 +18,16 @@ public class BinaryHeap<Item> where Item : IBinaryHeapItem
     private int _count = 0;
     private int _capacity = DEFAULT_SIZE;
     private bool _sorted;
+    private readonly IComparer<Item> _comparer;
 
     // Constructors
     /// <summary>
     /// Creates a new binary heap.
     /// </summary>
-    public BinaryHeap()
+    public BinaryHeap(IComparer<Item> comparer)
     {
         _data = new Item[DEFAULT_SIZE];
+        _comparer = comparer;
         // _capacity is already set to DEFAULT_SIZE
         // _count already set to 0
     }
@@ -121,7 +124,6 @@ public class BinaryHeap<Item> where Item : IBinaryHeapItem
         if (_count == _capacity)
             Capacity *= 2; // Automatically grows the array!
 
-        item.SetIndexInHeap(_count);
         _data[_count] = item;
         _count++;
         UpHeap();
@@ -137,14 +139,13 @@ public class BinaryHeap<Item> where Item : IBinaryHeapItem
             throw new InvalidOperationException("Cannot remove item, heap is empty.");
 
         Item v = _data[0];
-        v.SetIndexInHeap(REMOVED_FROM_HEAP);
         _count--;
         if (this._count != 0)
         {
             _data[0] = _data[_count];
             DownHeap();
         }
-        _data[_count] = default(Item); // Clear the last node
+        _data[_count] = default; // Clear the last node
         return v;
     }
 
@@ -159,15 +160,13 @@ public class BinaryHeap<Item> where Item : IBinaryHeapItem
         int p = _count - 1;
         Item item = _data[p];
         int par = Parent(p);
-        while (par > -1 && item.CompareTo(_data[par]) < 0)
+        while (par > -1 && _comparer.Compare(item, _data[par]) < 0)
         {
             _data[p] = _data[par]; // Swap parent down
-            _data[p].SetIndexInHeap(p);
             p = par;
             par = Parent(p);
         }
         _data[p] = item; // Finally, place item at the base of the bubble-up chain
-        _data[p].SetIndexInHeap(p);
     }
         
     private void DownHeap()
@@ -191,12 +190,11 @@ public class BinaryHeap<Item> where Item : IBinaryHeapItem
             if (ch2 >= _count)
                 n = ch1;
             else
-                n = _data[ch1].CompareTo(_data[ch2]) < 0 ? ch1 : ch2;
+                n = _comparer.Compare(_data[ch1], _data[ch2]) < 0 ? ch1 : ch2;
 
-            if (item.CompareTo(_data[n]) > 0)
+            if ( _comparer.Compare(item, _data[n]) > 0)
             {
                 _data[p] = _data[n]; // Swap child up
-                _data[p].SetIndexInHeap(p);
                 p = n;
             }
             else
@@ -205,7 +203,6 @@ public class BinaryHeap<Item> where Item : IBinaryHeapItem
             }
         }
         _data[p] = item; // Finally, place item at the base of the bubble-down chain
-        _data[p].SetIndexInHeap(p);
     }
         
     private void EnsureSort()
@@ -315,19 +312,12 @@ public class BinaryHeap<Item> where Item : IBinaryHeapItem
     {
         if (item == null)
             return false;
-        int child_index = item.GetIndexInHeap();
-            
-        if (child_index == REMOVED_FROM_HEAP)
+
+        int child_index = Array.IndexOf(_data, item, 0, _count);
+
+        if(child_index == -1)
             return false;
 
-        _data[child_index].SetIndexInHeap(REMOVED_FROM_HEAP);
-        //if (child_index == 0) // This seems unnecessary
-        //{
-        //    Remove();
-        //    return true;
-        //}
-
-        Item to_remove = _data[child_index];
         // Bubble to_remove up the heap
         // If UpHeap received an index parameter instead of always starting from the last element,
         // we could maybe remove some code duplication.
@@ -335,12 +325,11 @@ public class BinaryHeap<Item> where Item : IBinaryHeapItem
         while (child_index != 0)
         {
             _data[child_index] = _data[father_index]; // Swap parent down
-            _data[child_index].SetIndexInHeap(child_index);
             child_index = father_index;
             father_index = Parent(child_index);
         }
         // We got to 0
-        _data[0] = to_remove;
+        _data[0] = item;
         Remove(); // Ignoring the returned value.
         return true;
     }

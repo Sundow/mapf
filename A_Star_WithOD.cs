@@ -56,7 +56,7 @@ public class A_Star_WithOD : A_Star
     /// </summary>
     public override void Expand(WorldState node)
     {
-        if (((WorldStateWithOD)node).agentTurn == 0)
+        if (((WorldStateWithOD)node).AgentTurn == 0)
             expandedFullStates++;
         this.alreadyExpanded = false;
         base.Expand(node);
@@ -70,21 +70,21 @@ public class A_Star_WithOD : A_Star
 
         WorldStateWithOD parent = (WorldStateWithOD)intermediateNodes[0];
 
-        if (agentIndex < parent.agentTurn)
+        if (agentIndex < parent.AgentTurn)
             return intermediateNodes; // Do nothing to this agent
 
         var generated = base.ExpandOneAgent(intermediateNodes, agentIndex);
 
-        int childAgentTurn = ((parent.agentTurn + 1) % (this.instance.Agents.Length));
+        int childAgentTurn = ((parent.AgentTurn + 1) % (this.instance.Agents.Length));
         foreach (var node in generated)
         {
             WorldStateWithOD childNode = (WorldStateWithOD)node;
 
-            childNode.agentTurn = childAgentTurn;
+            childNode.AgentTurn = childAgentTurn;
 
             // Makespan increases only if this is the move of the first agent. This makes sure that under a makespan
             // cost function, partial nodes have a correct cost and can even serve as goal nodes.
-            if (parent.agentTurn != 0)
+            if (parent.AgentTurn != 0)
                 childNode.Makespan--; // Cancel the increment in base
         }
 
@@ -96,7 +96,7 @@ public class A_Star_WithOD : A_Star
     {
         bool ret = base.ProcessGeneratedNode(currentNode);
         var node = (WorldStateWithOD)currentNode;
-        if (node.agentTurn == 0)
+        if (node.AgentTurn == 0)
             this.generatedFullStates++;
         return ret;
     }

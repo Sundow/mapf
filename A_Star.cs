@@ -81,7 +81,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
     /// </summary>
     public A_Star(IHeuristicCalculator<WorldState> heuristic = null, bool mStar = false, bool mStarShuffle = false)
     {
-        this.openList = new OpenList<WorldState>(this);
+        this.openList = new OpenList<WorldState>(this, new WorldState.Comparer());
         this.heuristic = heuristic;
             
         this.mstar = mStar;
@@ -631,7 +631,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
             if (currentNode.MDDNode == null)
             {
                 // Try all legal moves of the agents
-                foreach (TimedMove potentialMove in currentNode.AllAgentsState[agentIndex].lastMove.GetNextMoves())
+                foreach (TimedMove potentialMove in currentNode.AllAgentsState[agentIndex].LastMove.GetNextMoves())
                 {
                     WorldState origNode = agentIndex == 0 ? currentNode : currentNode.PrevStep;
                     //moveIsValid = this.IsValid(potentialMove, currentNode.currentMoves, currentNode.makespan + 1, agentIndex, origNode, currentNode);
@@ -644,7 +644,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
                     int makespan = currentNode.Makespan + 1;
                     WorldState fromNode = origNode;
                     WorldState intermediateMode = currentNode;
-                    int agentNum = fromNode.AllAgentsState[agentIndex].agent.agentNum;
+                    int agentNum = fromNode.AllAgentsState[agentIndex].Agent.agentNum;
 
                     // Check if the proposed move is reserved in the plan of another agent.
                     // This is used in IndependenceDetection's ImprovedID.
@@ -718,7 +718,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
                                 bool success = false;
                                 var conflict = new CbsConflict(
                                         agentIndex, collidingAgentIndex, possibleMove,
-                                        intermediateMode.AllAgentsState[collidingAgentIndex].lastMove, makespan);
+                                        intermediateMode.AllAgentsState[collidingAgentIndex].LastMove, makespan);
                                 if (this.debug)
                                     Debug.WriteLine(conflict.ToString());
                                 if (!success)
@@ -742,7 +742,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
                     childNode.AllAgentsState[agentIndex].MoveTo(potentialMove);
 
                     if (agentIndex < currentNode.AllAgentsState.Length - 1) // More agents need to move
-                        childNode.CurrentMoves.Add(childNode.AllAgentsState[agentIndex].lastMove, agentIndex);
+                        childNode.CurrentMoves.Add(childNode.AllAgentsState[agentIndex].LastMove, agentIndex);
                     else // Moved the last agent
                         childNode.CurrentMoves = null; // To reduce memory load and lookup times
 
@@ -801,7 +801,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
                                     IReadOnlyDictionary<TimedMove, int> currentMoves, int makespan,
                                     int agentIndex, WorldState fromNode, WorldState intermediateMode)
     {
-        int agentNum = fromNode.AllAgentsState[agentIndex].agent.agentNum;
+        int agentNum = fromNode.AllAgentsState[agentIndex].Agent.agentNum;
 
         // Check if the proposed move is reserved in the plan of another agent.
         // This is used in IndependenceDetection's ImprovedID.
@@ -910,7 +910,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
                     bool success = false;
                     var conflict = new CbsConflict(
                             agentIndex, collidingAgentIndex, possibleMove,
-                            intermediateMode.AllAgentsState[collidingAgentIndex].lastMove, makespan);
+                            intermediateMode.AllAgentsState[collidingAgentIndex].LastMove, makespan);
                     if (this.debug)
                         Debug.WriteLine(conflict.ToString());
                     //if (this.doMstarShuffle && agentInCollisionSet == false)
