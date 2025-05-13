@@ -31,12 +31,12 @@ public class CbsConstraint : IComparable
         if (agentA)
         {
             move = conflict.agentAmove;
-            agentNum = instance.Agents[conflict.agentAIndex].agent.agentNum;
+            agentNum = instance.Agents[conflict.agentAIndex].Agent.agentNum;
         }
         else
         {
             move = conflict.agentBmove;
-            agentNum = instance.Agents[conflict.agentBIndex].agent.agentNum;
+            agentNum = instance.Agents[conflict.agentBIndex].Agent.agentNum;
         }
 
         this.agentNum = (byte)agentNum;

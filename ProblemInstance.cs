@@ -166,11 +166,11 @@ public class ProblemInstance
 
             // Create initial state
             AgentState agentStartState = Agents[agentId];
-            Agent agent = agentStartState.agent;
+            Agent agent = agentStartState.Agent;
             AgentState goalState = new(agent.Goal.X, agent.Goal.Y, -1, -1, agentId);
-            int goalIndex = GetCardinality(goalState.lastMove);
+            int goalIndex = GetCardinality(goalState.LastMove);
             shortestPathLengths[goalIndex] = 0;
-            optimalMoves[goalIndex] = new Move(goalState.lastMove);
+            optimalMoves[goalIndex] = new Move(goalState.LastMove);
             openlist.Enqueue(goalState);
 
             while (openlist.Count > 0)
@@ -178,17 +178,17 @@ public class ProblemInstance
                 AgentState state = openlist.Dequeue();
 
                 // Generate child states
-                foreach (TimedMove aMove in state.lastMove.GetNextMoves())
+                foreach (TimedMove aMove in state.LastMove.GetNextMoves())
                 {
                     if (IsValid(aMove))
                     {
                         int entry = _cardinality[aMove.X, aMove.Y];
                         // If move will generate a new or better state - add it to the queue
-                        if ((shortestPathLengths[entry] == -1) || (shortestPathLengths[entry] > state.g + 1))
+                        if ((shortestPathLengths[entry] == -1) || (shortestPathLengths[entry] > state.G + 1))
                         {
                             var childState = new AgentState(state);
                             childState.MoveTo(aMove);
-                            shortestPathLengths[entry] = childState.g;
+                            shortestPathLengths[entry] = childState.G;
                             optimalMoves[entry] = new Move(aMove.GetOppositeMove());
                             openlist.Enqueue(childState);
                         }
@@ -197,7 +197,7 @@ public class ProblemInstance
 
             }
 
-            int start = GetCardinality(agentStartState.lastMove);
+            int start = GetCardinality(agentStartState.LastMove);
             if (shortestPathLengths[start] == -1)
             {
                 throw new Exception($"Unsolvable instance! Agent {agentId} cannot reach its goal");
@@ -230,8 +230,8 @@ public class ProblemInstance
     /// <returns>The length of the shortest path between a given agent's location and the goal of that agent</returns>
     public int GetSingleAgentOptimalCost(AgentState agentState)
     {
-        int locationCardinality = _cardinality[agentState.lastMove.X, agentState.lastMove.Y];
-        return _singleAgentOptimalCosts[agentState.agent.agentNum][locationCardinality];
+        int locationCardinality = _cardinality[agentState.LastMove.X, agentState.LastMove.Y];
+        return _singleAgentOptimalCosts[agentState.Agent.agentNum][locationCardinality];
     }
 
     /// <summary>
@@ -239,8 +239,8 @@ public class ProblemInstance
     /// </summary>
     public Move GetSingleAgentOptimalMove(AgentState agentState)
     {
-        int locationCardinality = _cardinality[agentState.lastMove.X, agentState.lastMove.Y];
-        return _singleAgentOptimalMoves[agentState.agent.agentNum][locationCardinality];
+        int locationCardinality = _cardinality[agentState.LastMove.X, agentState.LastMove.Y];
+        return _singleAgentOptimalMoves[agentState.Agent.agentNum][locationCardinality];
     }
 
     /// <summary>
@@ -250,15 +250,15 @@ public class ProblemInstance
     public SinglePlan GetSingleAgentOptimalPlan(AgentState agentState)
     {
         List<Move> moves = [];
-        int agentNum = agentState.agent.agentNum;
-        TimedMove current = agentState.lastMove; // The starting position
+        int agentNum = agentState.Agent.agentNum;
+        TimedMove current = agentState.LastMove; // The starting position
         int time = current.Time;
 
         while (true)
         {
             moves.Add(current);
 
-            if (agentState.agent.Goal.Equals(current))
+            if (agentState.Agent.Goal.Equals(current))
                 break;
 
             // Get next optimal move
@@ -646,7 +646,7 @@ public class ProblemInstance
             foreach (var agentState in Agents)
             {
                 // Output all agent as block 1, with optimal cost -1
-                output.WriteLine($"{1}\t{mapFileName}\t{Grid.RowsCount}\t{Grid.ColumnsCount}\t{agentState.lastMove.Y}\t{agentState.lastMove.X}\t{agentState.agent.Goal.Y}\t{agentState.agent.Goal.X}\t{-1}");
+                output.WriteLine($"{1}\t{mapFileName}\t{Grid.RowsCount}\t{Grid.ColumnsCount}\t{agentState.LastMove.Y}\t{agentState.LastMove.X}\t{agentState.Agent.Goal.Y}\t{agentState.Agent.Goal.X}\t{-1}");
             }
         }
         else if (fileName.EndsWith(".agents"))
@@ -655,7 +655,7 @@ public class ProblemInstance
 
             foreach (var agentState in Agents)
             {
-                output.WriteLine($"{agentState.agent.Goal.X},{agentState.agent.Goal.Y},{agentState.lastMove.X},{agentState.lastMove.X}");
+                output.WriteLine($"{agentState.Agent.Goal.X},{agentState.Agent.Goal.Y},{agentState.LastMove.X},{agentState.LastMove.X}");
             }
         }
         else
@@ -686,7 +686,7 @@ public class ProblemInstance
             for (int i = 0; i < Agents.Length; i++)
             {
                 state = Agents[i];
-                output.WriteLine($"{state.agent.agentNum}{EXPORT_DELIMITER}{state.agent.Goal.X}{EXPORT_DELIMITER}{state.agent.Goal.Y}{EXPORT_DELIMITER}{state.lastMove.X}{EXPORT_DELIMITER}{state.lastMove.Y}");
+                output.WriteLine($"{state.Agent.agentNum}{EXPORT_DELIMITER}{state.Agent.Goal.X}{EXPORT_DELIMITER}{state.Agent.Goal.Y}{EXPORT_DELIMITER}{state.LastMove.X}{EXPORT_DELIMITER}{state.LastMove.Y}");
             }
         }
         output.Flush();

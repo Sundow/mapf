@@ -137,7 +137,7 @@ class MaxIndividualCosts : PDB
         if (s.GetType() == typeof(WorldStateWithOD))
         {
             var sWithOD = (WorldStateWithOD) s;
-            if (sWithOD.agentTurn != 0 && sWithOD.agentTurn <= agentIndexWithMaxEstimate)
+            if (sWithOD.AgentTurn != 0 && sWithOD.AgentTurn <= agentIndexWithMaxEstimate)
                 maxHeuristic--;  // Make the F of nodes non-decreasing. Otherwise the child node where the agent
                                     // with the max estimate finally moves, and moves along its shortest path to the
                                     // goal (decreasing the heuristic), will have a lower F than its parent (because

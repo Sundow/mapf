@@ -662,25 +662,25 @@ public class Run : IDisposable
         {
             for (int i = 0; i < agentsNum; i++)
             {
-                goals[aStart[i].lastMove.X][aStart[i].lastMove.Y] = false; // We're going to move the goal somewhere else
+                goals[aStart[i].LastMove.X][aStart[i].LastMove.Y] = false; // We're going to move the goal somewhere else
                 while (true)
                 {
                     Direction op = (Direction)rand.Next(0, 5); // TODO: fixme
-                    aStart[i].lastMove.Update(op);
-                    if (problem.IsValid(aStart[i].lastMove) &&
-                        !goals[aStart[i].lastMove.X][aStart[i].lastMove.Y]) // this spot isn't another agent's goal
+                    aStart[i].LastMove.Update(op);
+                    if (problem.IsValid(aStart[i].LastMove) &&
+                        !goals[aStart[i].LastMove.X][aStart[i].LastMove.Y]) // this spot isn't another agent's goal
                         break;
                     else
-                        aStart[i].lastMove.SetOppositeMove(); // Rollback
+                        aStart[i].LastMove.SetOppositeMove(); // Rollback
                 }
-                goals[aStart[i].lastMove.X][aStart[i].lastMove.Y] = true; // Claim agent's new goal
+                goals[aStart[i].LastMove.X][aStart[i].LastMove.Y] = true; // Claim agent's new goal
             }
         }
 
         // Zero the agents' timesteps
         foreach (AgentState agentStart in aStart) 
         {
-            agentStart.lastMove.Time = 0;
+            agentStart.LastMove.Time = 0;
         }
 
         // TODO: There is some repetition here of previous instantiation of ProblemInstance. Think how to elegantly bypass this.
@@ -770,25 +770,25 @@ public class Run : IDisposable
             {
                 for (int i = 0; i < agentsNum; i++)
                 {
-                    goals[agentStates[i].lastMove.X][agentStates[i].lastMove.Y] = false; // We're going to move the goal somewhere else.
+                    goals[agentStates[i].LastMove.X][agentStates[i].LastMove.Y] = false; // We're going to move the goal somewhere else.
                     // Move in a random legal direction:
                     while (true)
                     {
                         Direction op = (Direction)rand.Next(0, 5); // TODO: fixme
-                        agentStates[i].lastMove.Update(op);
-                        if (problem.IsValid(agentStates[i].lastMove) &&
-                            !goals[agentStates[i].lastMove.X][agentStates[i].lastMove.Y]) // This spot isn't another agent's goal
+                        agentStates[i].LastMove.Update(op);
+                        if (problem.IsValid(agentStates[i].LastMove) &&
+                            !goals[agentStates[i].LastMove.X][agentStates[i].LastMove.Y]) // This spot isn't another agent's goal
                             break;
                         else
-                            agentStates[i].lastMove.SetOppositeMove(); // Rollback
+                            agentStates[i].LastMove.SetOppositeMove(); // Rollback
                     }
-                    goals[agentStates[i].lastMove.X][agentStates[i].lastMove.Y] = true; // Claim agent's new goal
+                    goals[agentStates[i].LastMove.X][agentStates[i].LastMove.Y] = true; // Claim agent's new goal
                 }
             }
 
             // Zero the agents' timesteps
             foreach (AgentState agentStart in agentStates)
-                agentStart.lastMove.Time = 0;
+                agentStart.LastMove.Time = 0;
 
             return problem;
         }

@@ -75,7 +75,7 @@ abstract class CostTreeNodeSolver : IConflictReporting
 
         for (int i = 0; i < this.allMDDs.Length; i++)
         {
-            this.allMDDs[i] = new MDD(i, startingPos[i].agent.agentNum, startingPos[i].lastMove,
+            this.allMDDs[i] = new MDD(i, startingPos[i].Agent.agentNum, startingPos[i].LastMove,
                                         costsNode.costs[i], maxCost, startingPos.Length, problem, reserved: reserved);
         }
         this.expanded = 0;
@@ -89,7 +89,7 @@ abstract class CostTreeNodeSolver : IConflictReporting
         int index = 0;
         foreach (var agentNum in agentNums)
         {
-            while (problem.Agents[index].agent.agentNum != agentNum)
+            while (problem.Agents[index].Agent.agentNum != agentNum)
                 ++index;
             this.startingPos[index] = this.problem.Agents[index];
         }
@@ -98,7 +98,7 @@ abstract class CostTreeNodeSolver : IConflictReporting
 
         for (int i = 0; i < this.allMDDs.Length; i++)
         {
-            this.allMDDs[i] = new MDD(agentNums[i], startingPos[i].agent.agentNum, startingPos[i].lastMove,
+            this.allMDDs[i] = new MDD(agentNums[i], startingPos[i].Agent.agentNum, startingPos[i].LastMove,
                                     costsNode.costs[i], maxCost, startingPos.Length, problem, reserved: reserved);
         }
         this.expanded = 0;
@@ -223,9 +223,9 @@ class CostTreeNodeSolverOldMatching : CostTreeNodeSolver
         A_Star_MDDs findSolution = new(allMDDs, stopwatch, CAT);
             
         SinglePlan[] ans = findSolution.Solve();
-        this.generated = findSolution.generated;
-        this.expanded = findSolution.expanded;
-        this.conflictsNotAvoided = findSolution.conflictCount;
+        this.generated = findSolution.Generated;
+        this.expanded = findSolution.Expanded;
+        this.conflictsNotAvoided = findSolution.ConflictCount;
         this.conflictCounts = findSolution.GetExternalConflictCounts();
         this.conflictTimes = findSolution.GetConflictTimes();
         return ans;
@@ -272,9 +272,9 @@ class CostTreeNodeSolverDDBF : CostTreeNodeSolver
                 return null;
         A_Star_MDDs findSolution = new(allMDDs, stopwatch, CAT);
         SinglePlan[] ans = findSolution.Solve();
-        generated = findSolution.generated;
-        expanded = findSolution.expanded;
-        conflictsNotAvoided = findSolution.conflictCount;
+        generated = findSolution.Generated;
+        expanded = findSolution.Expanded;
+        conflictsNotAvoided = findSolution.ConflictCount;
         conflictCounts = findSolution.GetExternalConflictCounts();
         conflictTimes = findSolution.GetConflictTimes();
         return ans;
@@ -393,9 +393,9 @@ class CostTreeNodeSolverKSimpleMatching : CostTreeNodeSolver
             return null;
         findSolution = new A_Star_MDDs(allMDDs, stopwatch, CAT);
         SinglePlan[] ans = findSolution.Solve();
-        generated = findSolution.generated;
-        expanded = findSolution.expanded;
-        conflictsNotAvoided = findSolution.conflictCount;
+        generated = findSolution.Generated;
+        expanded = findSolution.Expanded;
+        conflictsNotAvoided = findSolution.ConflictCount;
         conflictCounts = findSolution.GetExternalConflictCounts();
         conflictTimes = findSolution.GetConflictTimes();
         return ans;
@@ -472,9 +472,9 @@ class CostTreeNodeSolverRepeatedMatching : CostTreeNodeSolver
             return null;
         A_Star_MDDs findSolution = new(allMDDs, stopwatch, CAT);
         SinglePlan[] ans = findSolution.Solve();
-        generated = findSolution.generated;
-        expanded = findSolution.expanded;
-        conflictsNotAvoided = findSolution.conflictCount;
+        generated = findSolution.Generated;
+        expanded = findSolution.Expanded;
+        conflictsNotAvoided = findSolution.ConflictCount;
         return ans;
     }
 }

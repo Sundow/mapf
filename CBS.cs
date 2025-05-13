@@ -99,6 +99,8 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
     private CbsNode _goalNode;
     private Plan _solution;
 
+    private static CbsNode.Comparer _nodeComparer = new();
+
     /// <summary>
     /// Nodes with a higher F aren't generated. As a result, goal nodes with a higher cost
     /// won't be found.
@@ -196,9 +198,9 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
         )
     {
         if (heuristic == null)
-            OpenList = new OpenList<CbsNode>(this);
+            OpenList = new OpenList<CbsNode>(this, _nodeComparer);
         else
-            OpenList = new DynamicLazyOpenList<CbsNode>(this, heuristic);
+            OpenList = new DynamicLazyOpenList<CbsNode>(this, heuristic, _nodeComparer);
         MergeThreshold = mergeThreshold;
         _solver = generalSolver;
         _singleAgentSolver = singleAgentSolver;
@@ -252,7 +254,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
         {
             foreach (var agentState in problemInstance.Agents)
             {
-                constraints.Add(new CbsConstraint(agentState.agent.agentNum, illegalMove));
+                constraints.Add(new CbsConstraint(agentState.Agent.agentNum, illegalMove));
             }
         }
         Setup(problemInstance, illegalMoves.Max(move => move.Time), stopwatch, CAT, constraints, null, targetCost, targetCost);
@@ -1058,7 +1060,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
             bool adoptionPerformedBefore = false;
             while (true) // Until a node with a higher cost is found or a goal is found
             {
-                OpenList<CbsNode> lookAheadOpenList = new(this);
+                OpenList<CbsNode> lookAheadOpenList = new(this, _nodeComparer);
                 HashSet<CbsNode> lookAheadSameCostNodes = [];
                 HashSet<CbsNode> lookAheadLargerCostNodes = [];
                 HashSet<CbsNode> lookAheadSameCostNodesToReinsertWithHigherCost = [];
@@ -1178,7 +1180,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
         else // bypassStrategy == BypassStrategy.BEST_FIT_LOOKAHEAD and this set of costs not already done
         {
             // FIXME: lookaheadMaxExpansions isn't respected correctly here. We actually limit the number of same-cost nodes generated, which is similar but not the same.
-            OpenList<CbsNode> lookAheadOpenList = new(this);
+            OpenList<CbsNode> lookAheadOpenList = new(this, _nodeComparer);
             HashSet<CbsNode> lookAheadSameCostNodes = [];
             HashSet<CbsNode> lookAheadLargerCostNodes = [];
             HashSet<CbsNode> lookAheadSameCostNodesToReinsertWithHigherCost = [];

@@ -123,12 +123,12 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
     private bool singleAgentAStar(AgentState agent)
     {
         AgentState.EquivalenceOverDifferentTimes = false;
-        BinaryHeap<AgentState> openList = new(); // TODO: Safe to use OpenList here instead?
+        BinaryHeap<AgentState> openList = new(new AgentState.Comparer()); // TODO: Safe to use OpenList here instead?
         HashSet<AgentState> closedList = [];
-        agent.h = this.problem.GetSingleAgentOptimalCost(agent);
+        agent.H = this.problem.GetSingleAgentOptimalCost(agent);
         openList.Add(agent);
         AgentState node;
-        this.initialEstimate += agent.h;
+        this.initialEstimate += agent.H;
         TimedMove queryTimedMove = new();
 
         while (openList.Count > 0)
@@ -138,21 +138,21 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
                 return false;
             }
             node = openList.Remove();
-            if (node.h == 0)
+            if (node.H == 0)
             {
                 bool valid = true;
-                for (int i = node.lastMove.Time ; i <= maxPathCostSoFar; i++)
+                for (int i = node.LastMove.Time ; i <= maxPathCostSoFar; i++)
                 {
-                    queryTimedMove.Setup(node.lastMove.X, node.lastMove.Y, Direction.NO_DIRECTION, i);
+                    queryTimedMove.Setup(node.LastMove.X, node.LastMove.Y, Direction.NO_DIRECTION, i);
                     if (reservationTable.Contains(queryTimedMove))
                         valid = false;
                 }
                 if (valid)
                 {
-                    this.paths[agent.agent.agentNum] = new SinglePlan(node);
+                    this.paths[agent.Agent.agentNum] = new SinglePlan(node);
                     reservePath(node);
-                    totalcost += node.lastMove.Time;
-                    parked.Add(new Move(node.lastMove.X, node.lastMove.Y, Direction.NO_DIRECTION), node.lastMove.Time);
+                    totalcost += node.LastMove.Time;
+                    parked.Add(new Move(node.LastMove.X, node.LastMove.Y, Direction.NO_DIRECTION), node.LastMove.Time);
                     return true;
                 }
             }
@@ -167,27 +167,29 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
         AgentState node = end;
         while (node != null)
         {
-            reservationTable.Add(new TimedMove(node.lastMove));
-            pathCosts[node.agent.agentNum]++;
-            node = node.prev;
+            reservationTable.Add(new TimedMove(node.LastMove));
+            pathCosts[node.Agent.agentNum]++;
+            node = node.Prev;
         }
-        if (pathCosts[end.agent.agentNum] > this.maxPathCostSoFar)
-            this.maxPathCostSoFar = pathCosts[end.agent.agentNum];
+        if (pathCosts[end.Agent.agentNum] > this.maxPathCostSoFar)
+            this.maxPathCostSoFar = pathCosts[end.Agent.agentNum];
     }
 
     private void expandNode(AgentState node, BinaryHeap<AgentState> openList, HashSet<AgentState> closedList)
     {
-        foreach (TimedMove move in node.lastMove.GetNextMoves())
+        foreach (TimedMove move in node.LastMove.GetNextMoves())
         {
             if (this.isValidMove(move))
             {
-                AgentState child = new AgentState(node);
-                child.prev = node;
+                AgentState child = new(node)
+                {
+                    Prev = node
+                };
                 child.MoveTo(move);
                 if (closedList.Contains(child) == false)
                 {
                     closedList.Add(child);
-                    child.h = this.problem.GetSingleAgentOptimalCost(child);
+                    child.H = this.problem.GetSingleAgentOptimalCost(child);
                     openList.Add(child);
                     generated++;
                 }
