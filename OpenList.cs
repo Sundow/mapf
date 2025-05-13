@@ -28,8 +28,8 @@ public class OpenList<Item> : IAccumulatingStatisticsCsvWriter
 
     public OpenList(ISolver user, IComparer<Item> comparer)
     {
-        _heap = new BinaryHeap<Item>(_comparer);
         _comparer = comparer;
+        _heap = new BinaryHeap<Item>(_comparer);
         _queue = new Queue<Item>();
 
         _user = user;
