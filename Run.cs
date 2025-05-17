@@ -127,7 +127,7 @@ public class Run : IDisposable
         CBS cbs = new(astar, astar, -1);
         A_Star_WithOD astar_with_od = new(simple);
         EPEA_Star epea = new(simple);
-        var macbsLocal5Epea = new CBS(astar, epea, 5);
+        var macbsLocal5Epea = new CBS(astar, epea, 5, disableTieBreakingByMinOpsEstimate: false);
         //var macbsLocal50Epea = new CBS(astar, epea, 50);
         //var cbsHeuristicNoSolve1 = new CbsHeuristicForAStar(cbs, this, false, 1);
         //var cbsHeuristicNoSolve2 = new CbsHeuristicForAStar(cbs, this, false, 2);
